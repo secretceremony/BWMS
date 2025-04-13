@@ -55,23 +55,9 @@ Membangun **aplikasi web** untuk:
 | **Backend**   | Express.js, Node.js               |
 | **Database**  | PostgreSQL                        |
 | **Auth**      | JWT                               |
-| **Deployment**| Vercel (frontend), Render (backend) |
+| **Deployment**| Vercel (frontend), Railway (backend) |
 
 ---
-
-## 6. 🗓 Timeline Pengembangan
-
-| Pekan | Aktivitas                                                                 |
-|--------|---------------------------------------------------------------------------|
-| 9-10   | Requirement gathering, wireframing, desain database                      |
-| 11     | Autentikasi, manajemen produk                                            |
-| 12-13  | Sistem transaksi & manajemen stok                                        |
-| 14     | Pembuatan dashboard, laporan, bug fixing                                 |
-| 15     | Finalisasi & deployment                                                  |
-
----
-
-> 💡 Dengan pengelolaan digital ini, PT Biruni Altha Ethan dapat mengoptimalkan operasional dan membuat keputusan berbasis data secara efisien.
 
 
 # 🛠 Fullstack App - Vite + Express + PostgreSQL + JWT
@@ -154,21 +140,3 @@ Aplikasi akan muncul di http://localhost:5173
 - Token dikirim melalui Authorization header
 - Middleware auth.js memverifikasi token untuk endpoint yang dilindungi
 
----
-
-## 🧪 Testing
-
-Kamu bisa gunakan tools seperti [Postman](https://www.postman.com/) atau [Insomnia](https://insomnia.rest/) untuk mengetes endpoint backend secara manual.
-
----
-
-## 🚀 Deployment
-
-### Frontend → Vercel
-- Deploy folder /frontend
-- Output Directory: dist
-- Environment Variable: VITE_API_URL = URL backend di Render/Railway
-
-### Backend → Railway
-- Deploy folder /backend
-- Environment Variable: dari .env
