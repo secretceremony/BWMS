@@ -1,81 +1,107 @@
-import React from "react";
-import {
-  Box,
-  Button,
-  Container,
-  Grid,
-  TextField,
-  Typography,
-  Paper,
-} from "@mui/material";
+import React, { useState } from 'react';
+import { 
+  Container, 
+  Paper, 
+  TextField, 
+  Button, 
+  Typography, 
+  Box, 
+  CircularProgress 
+} from '@mui/material';
 
-const LoginPage = () => {
+function Login({ onLogin, error, loading }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onLogin(username, password);
+  };
+
   return (
-    <Grid container sx={{ minHeight: "100vh" }}>
-      {/* Left side - Form */}
-      <Grid
-        item
-        xs={12}
-        md={6}
-        component={Paper}
-        elevation={6}
-        square
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          px: 6,
+    <div style={{ display: 'flex', height: '100vh' }}>
+      <Container component="main" maxWidth="sm" style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        justifyContent: 'center' 
+      }}>
+        <Paper elevation={3} style={{ 
+          padding: '2rem', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center' 
+        }}>
+          <Box mb={4} style={{ alignSelf: 'center' }}>
+            <Typography variant="h5" component="div" align="center">
+              Logo
+            </Typography>
+          </Box>
+          
+          <Box width="100%" mb={4}>
+            <Typography variant="h4" component="h1">
+              Welcome back
+            </Typography>
+          </Box>
+          
+          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+            <Box width="100%" mb={2}>
+              <TextField
+                fullWidth
+                label="Username"
+                variant="outlined"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </Box>
+            
+            <Box width="100%" mb={4}>
+              <TextField
+                fullWidth
+                label="Password"
+                type="password"
+                variant="outlined"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </Box>
+            
+            {error && (
+              <Box width="100%" mb={2}>
+                <Typography color="error">{error}</Typography>
+              </Box>
+            )}
+            
+            <Box width="100%">
+              <Button
+                fullWidth
+                variant="contained"
+                color="primary"
+                size="large"
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={24} /> : 'Login'}
+              </Button>
+            </Box>
+          </form>
+          
+        </Paper>
+      </Container>
+      <Box 
+        sx={{ 
+          backgroundColor: 'grey.200',
+          width: '40%',
+          display: { xs: 'none', md: 'flex' },
+          alignItems: 'center',
+          justifyContent: 'center'
         }}
       >
-        <Box sx={{ mb: 4 }}>
-          <Button variant="contained" disabled fullWidth>
-            Logo
-          </Button>
-        </Box>
-        <Typography variant="h4" gutterBottom>
-          Welcome back
-        </Typography>
-        <Box component="form" noValidate sx={{ mt: 1 }}>
-          <TextField
-            margin="normal"
-            fullWidth
-            label="Username"
-            variant="outlined"
-          />
-          <TextField
-            margin="normal"
-            fullWidth
-            label="Password"
-            type="password"
-            variant="outlined"
-          />
-          <Button
-            fullWidth
-            variant="contained"
-            color="primary"
-            sx={{ mt: 3 }}
-          >
-            Login
-          </Button>
-        </Box>
-      </Grid>
-
-      {/* Right side - Visual */}
-      <Grid
-        item
-        xs={false}
-        md={6}
-        sx={{
-          backgroundColor: "#e0e0e0",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Typography variant="h5">Visual</Typography>
-      </Grid>
-    </Grid>
+        <Typography variant="h4">Visual</Typography>
+      </Box>
+    </div>
   );
-};
+}
 
-export default LoginPage;
+export default Login;

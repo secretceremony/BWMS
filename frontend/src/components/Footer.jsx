@@ -1,22 +1,24 @@
-import React from "react";
-import { Box, Typography } from "@mui/material";
+import React from 'react';
+import { Box, Typography, Container } from '@mui/material';
 
-const Footer = () => {
+function Footer() {
   return (
-    <Box
-      component="footer"
-      sx={{
-        mt: 4,
-        py: 2,
-        textAlign: "center",
-        backgroundColor: "#e0e0e0",
+    <Box 
+      component="footer" 
+      sx={{ 
+        py: 3, 
+        px: 2, 
+        mt: 'auto', 
+        backgroundColor: (theme) => theme.palette.grey[200]
       }}
     >
-      <Typography variant="body2" color="text.secondary">
-        © {new Date().getFullYear()} Your Company Name
-      </Typography>
+      <Container maxWidth="lg">
+        <Typography variant="body2" color="text.secondary" align="center">
+          © {new Date().getFullYear()} Kelompok A7
+        </Typography>
+      </Container>
     </Box>
   );
-};
+}
 
 export default Footer;
