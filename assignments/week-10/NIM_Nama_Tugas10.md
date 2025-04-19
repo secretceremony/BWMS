@@ -16,7 +16,7 @@ Pada minggu ini, kami memulai pengerjaan proyek tugas besar mata kuliah *Pemrogr
 ### 🗂️ 1. Perancangan Skema Database
 - Membuat rancangan struktur tabel yang akan digunakan untuk menyimpan data penting dalam aplikasi.
 
-- ![Skema Database](tabel_database.jpg)
+ ![Skema Database](tabel_database.jpg)
 
 ---
 
