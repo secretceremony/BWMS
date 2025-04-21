@@ -1,8 +1,13 @@
 # 📌 Laporan Progres Mingguan - **Sistem Manajemen Gudang Biruni**
-**Kelompok**: A7  
+**Kelompok**: 7  
+- **Adhyasta Firdaus (10231005)**<br>
+- **Ansellma Tita Pakartiwuri Putri (10231017)**<br>
+- **Dhiya Afifah (10231031)**<br>
+- **Gabriel Karmen Sanggalangi (10231039)**
+
 **Mitra**: PT. Biruni Altha Etam  
 **Pekan ke-**: 10  
-**Tanggal**: 18 April 2025  
+**Tanggal**: 21 April 2025  
 
 ---
 
@@ -87,7 +92,3 @@ Mengembangkan halaman login yang terdiri dari input untuk username dan password,
 | **Gabriel Karmen Sanggalangi** | Pengujian error login dan halaman not found |
 | **Dhiya Afifah** | Pengembangan struktur Dashboard dan Login |
 | **Ansellma Tita Pakartiwuri Putri** | Pengecekan frontend |
-
----
-
-
