@@ -32,7 +32,7 @@ function App() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const res = await axios.get('http://localhost:8080/api/user', { withCredentials: true });
+        const res = await axios.get('https://bwms-production.up.railway.app/api/user', { withCredentials: true });
         if (res.data.user) {
           setIsAuthenticated(true);
           setUser(res.data.user);
@@ -55,7 +55,7 @@ function App() {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post('http://localhost:8080/api/login', { email, password }, { withCredentials: true });
+      const res = await axios.post('https://bwms-production.up.railway.app/api/login', { email, password }, { withCredentials: true });
       if (res.data.message === "Login successful" && res.data.user) {
         setIsAuthenticated(true);
         setUser(res.data.user);
@@ -78,7 +78,7 @@ function App() {
   const handleLogout = async () => {
     setLoading(true);
     try {
-      await axios.post('http://localhost:8080/api/logout', {}, { withCredentials: true });
+      await axios.post('https://bwms-production.up.railway.app/api/logout', {}, { withCredentials: true });
       setIsAuthenticated(false);
       setUser(null);
     } catch (err) {
