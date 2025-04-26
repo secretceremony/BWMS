@@ -2,12 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 
-// Use an environment variable for the API base URL
-// This variable will be set via your .env file locally and Vercel settings publicly
-// For Vite:
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-// For Create React App:
-// const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL 
+    || (import.meta.env.MODE === 'development' ? 'http://localhost:8080' : 'https://bwms-production.up.railway.app/');
 
 // Optional: Add a check/fallback or error display if the variable isn't set
 if (!API_BASE_URL) {
