@@ -1,18 +1,25 @@
 import React from 'react';
 import axios from 'axios';
-import { 
-  Box, 
-  Avatar, 
-  Typography, 
-  TextField, 
-  Button, 
-  MenuItem, 
-  Grid, 
-  Snackbar, 
-  Alert 
+import {
+  Box,
+  Avatar,
+  Typography,
+  TextField,
+  Button,
+  MenuItem,
+  Grid,
+  Snackbar,
+  Alert
 } from '@mui/material';
 
-const API_BASE_URL = 'https://bwms-production.up.railway.app';
+// Use an environment variable for the API base URL
+// For Vite: import.meta.env.VITE_API_BASE_URL
+// For Create React App: process.env.REACT_APP_API_BASE_URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+// Fallback for development if the variable isn't set (optional but helpful)
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
 
 const Profile = () => {
   const [user, setUser] = React.useState(null);
@@ -27,11 +34,25 @@ const Profile = () => {
 
   const fetchUser = async () => {
     try {
+      // Ensure API_BASE_URL is defined before making the request
+      if (!API_BASE_URL) {
+         console.error('API_BASE_URL is not defined.');
+         setSnackbarMessage('Application configuration error: API URL not set.');
+         setSnackbarSeverity('error');
+         setSnackbarOpen(true);
+         return; // Stop execution if URL is missing
+      }
       const response = await axios.get(`${API_BASE_URL}/api/user`, { withCredentials: true });
-      setUser(response.data.user); // <-- Fix: get the real user object
+      setUser(response.data.user);
     } catch (error) {
       console.error('Failed to fetch user:', error);
-      setSnackbarMessage('Failed to fetch user data.');
+      // Provide more specific feedback if possible
+      if (error.response && error.response.status === 401) {
+          setSnackbarMessage('Not authenticated. Please log in.');
+          // Optionally redirect to login page here
+      } else {
+          setSnackbarMessage('Failed to fetch user data.');
+      }
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     }
@@ -47,12 +68,21 @@ const Profile = () => {
     };
 
     try {
+       // Ensure API_BASE_URL is defined before making the request
+      if (!API_BASE_URL) {
+         console.error('API_BASE_URL is not defined.');
+         setSnackbarMessage('Application configuration error: API URL not set.');
+         setSnackbarSeverity('error');
+         setSnackbarOpen(true);
+         setLoading(false); // Stop loading
+         return; // Stop execution if URL is missing
+      }
       const response = await axios.post(`${API_BASE_URL}/api/submit`, payload, { withCredentials: true });
       setSnackbarMessage('Data sent successfully!');
       setSnackbarSeverity('success');
     } catch (error) {
       console.error('Error sending data:', error);
-      setSnackbarMessage('Failed to send data.');
+       setSnackbarMessage('Failed to send data.');
       setSnackbarSeverity('error');
     } finally {
       setSnackbarOpen(true);
@@ -69,10 +99,24 @@ const Profile = () => {
     fetchUser();
   }, []);
 
+  // Add a check for API_BASE_URL being undefined during initial render
+  if (!API_BASE_URL) {
+      return (
+         <Box sx={{ p: 3 }}>
+            <Typography variant="h6" color="error">Configuration Error: API Base URL is not set.</Typography>
+            <Typography variant="body2">Please check your environment variables.</Typography>
+         </Box>
+      );
+  }
+
+
   if (!user) {
+    // You might want to show a more specific message if the error was 401
+     // For now, keeping the original loading state
     return (
       <Box sx={{ p: 3 }}>
         <Typography variant="h6">Loading user...</Typography>
+        {/* Could potentially show a "Login Required" message here if fetchUser caught a 401 */}
       </Box>
     );
   }
@@ -84,13 +128,13 @@ const Profile = () => {
       <Grid container spacing={3} alignItems="center">
         <Grid item>
           <Avatar sx={{ width: 120, height: 120, fontSize: 32 }}>
-            {user.username.split(' ').map(word => word[0]).join('')}
+            {user.username ? user.username.split(' ').map(word => word[0]).join('').toUpperCase() : '?' } {/* Added check for user.username */}
           </Avatar>
         </Grid>
         <Grid item>
-          <Typography variant="h6">Name: {user.username}</Typography>
-          <Typography variant="h6">Email: {user.email}</Typography>
-          <Typography variant="h6">Role: {user.role}</Typography>
+          <Typography variant="h6">Name: {user.username || 'N/A'}</Typography> {/* Added fallback */}
+          <Typography variant="h6">Email: {user.email || 'N/A'}</Typography>   {/* Added fallback */}
+          <Typography variant="h6">Role: {user.role || 'N/A'}</Typography>     {/* Added fallback */}
         </Grid>
       </Grid>
 
@@ -126,8 +170,8 @@ const Profile = () => {
           <MenuItem value="option3">Option 3</MenuItem>
         </TextField>
 
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           sx={{ mt: 2 }}
           onClick={handleSubmit}
           disabled={loading}
@@ -137,9 +181,9 @@ const Profile = () => {
       </Box>
 
       {/* Snackbar */}
-      <Snackbar 
-        open={snackbarOpen} 
-        autoHideDuration={3000} 
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
