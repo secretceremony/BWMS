@@ -1,72 +1,152 @@
 import React from 'react';
-import { Container, Grid, Paper, Typography, Box } from '@mui/material';
-import Layout from '../components/Layout';
+import { Box, Card, CardContent, Typography, Grid } from '@mui/material';
+import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
 
-const Dashboard = ({ user, onLogout }) => {
+const stats = [
+  { title: 'Total Inventory', value: '5,678' },
+  { title: 'Low Stock Alerts', value: '12' },
+  { title: 'Incoming Shipments', value: '24' },
+  { title: 'Outgoing Shipments', value: '18' },
+];
+
+const inventoryMovementData = [
+  { month: 'Jan', incoming: 300, outgoing: 400 },
+  { month: 'Feb', incoming: 200, outgoing: 300 },
+  { month: 'Mar', incoming: 400, outgoing: 600 },
+  { month: 'Apr', incoming: 700, outgoing: 1000 },
+  { month: 'May', incoming: 350, outgoing: 500 },
+  { month: 'Jun', incoming: 400, outgoing: 450 },
+];
+
+const pieData = [
+  { name: 'Warehouse A', value: 400 },
+  { name: 'Warehouse B', value: 300 },
+  { name: 'Warehouse C', value: 300 },
+  { name: 'Warehouse D', value: 200 },
+];
+
+const recentTransactions = [
+  { item: 'Item A', quantity: 50, type: 'Incoming', date: '2025-04-18' },
+  { item: 'Item B', quantity: 30, type: 'Outgoing', date: '2025-04-17' },
+  { item: 'Item C', quantity: 20, type: 'Incoming', date: '2025-04-16' },
+];
+
+const inventoryTrendData = [
+  { date: 'Day 1', quantity: 800 },
+  { date: 'Day 10', quantity: 1200 },
+  { date: 'Day 20', quantity: 1100 },
+  { date: 'Day 30', quantity: 1600 },
+];
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+
+const Dashboard = () => {
   return (
-    <Layout onLogout={onLogout}>
-      <Container maxWidth="xl">
-        <Typography variant="h4" gutterBottom>
-          Dashboard
-        </Typography>
+    <Box sx={{ p: 3 }}>
+      {/* Stats Section */}
+      <Grid container spacing={2} mb={3}>
+        {stats.map((stat, index) => (
+          <Grid item xs={12} sm={6} md={3} key={index}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle2" color="textSecondary">
+                  {stat.title}
+                </Typography>
+                <Typography variant="h5" fontWeight="bold">
+                  {stat.value}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
 
-        {/* Top cards */}
-        <Grid container spacing={3}>
-          {['Total Inventory', 'Low Stock Alerts', 'Incoming Shipments', 'Outgoing Shipments'].map((title, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="h6">{title}</Typography>
-                <Typography variant="h4">XXXX</Typography>
-              </Paper>
-            </Grid>
-          ))}
+      {/* Charts Section */}
+      <Grid container spacing={2} mb={3}>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Inventory Movement Chart
+              </Typography>
+              <LineChart width={400} height={250} data={inventoryMovementData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="incoming" stroke="#8884d8" />
+                <Line type="monotone" dataKey="outgoing" stroke="#82ca9d" />
+              </LineChart>
+            </CardContent>
+          </Card>
         </Grid>
 
-        {/* Middle charts */}
-        <Grid container spacing={3} sx={{ mt: 2 }}>
-          <Grid item xs={12} md={8}>
-            <Paper sx={{ p: 2, height: 300 }}>
-              <Typography variant="h6">Inventory Movement Chart</Typography>
-              <Box sx={{ mt: 2, height: '80%', backgroundColor: '#eee', textAlign: 'center', lineHeight: '240px' }}>
-                Chart Placeholder
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Storage Pie Chart
+              </Typography>
+              <PieChart width={400} height={250}>
+                <Pie
+                  data={pieData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  fill="#8884d8"
+                  label
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Legend />
+              </PieChart>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Transactions and Trend Section */}
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Recent Transactions
+              </Typography>
+              <Box component="ul" sx={{ pl: 2 }}>
+                {recentTransactions.map((tx, index) => (
+                  <li key={index}>
+                    {tx.item} - {tx.quantity} - {tx.type} - {tx.date}
+                  </li>
+                ))}
               </Box>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2, height: 300 }}>
-              <Typography variant="h6">Storage Pie Chart</Typography>
-              <Box sx={{ mt: 2, height: '80%', backgroundColor: '#eee', textAlign: 'center', lineHeight: '240px' }}>
-                Pie Placeholder
-              </Box>
-            </Paper>
-          </Grid>
+            </CardContent>
+          </Card>
         </Grid>
 
-        {/* Bottom tables */}
-        <Grid container spacing={3} sx={{ mt: 2 }}>
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2, height: 300 }}>
-              <Typography variant="h6">Recent Transactions</Typography>
-              <Box sx={{ mt: 2 }}>
-                <ul>
-                  <li>Item A - 50 - Incoming - 2025-04-18</li>
-                  <li>Item B - 30 - Outgoing - 2025-04-17</li>
-                  <li>Item C - 20 - Incoming - 2025-04-16</li>
-                </ul>
-              </Box>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2, height: 300 }}>
-              <Typography variant="h6">Inventory Trend (Last 30 Days)</Typography>
-              <Box sx={{ mt: 2, height: '80%', backgroundColor: '#eee', textAlign: 'center', lineHeight: '240px' }}>
-                Trend Placeholder
-              </Box>
-            </Paper>
-          </Grid>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Inventory Trend (Last 30 Days)
+              </Typography>
+              <LineChart width={400} height={250} data={inventoryTrendData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="quantity" stroke="#8884d8" />
+              </LineChart>
+            </CardContent>
+          </Card>
         </Grid>
-      </Container>
-    </Layout>
+      </Grid>
+    </Box>
   );
 };
 
