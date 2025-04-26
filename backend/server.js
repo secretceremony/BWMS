@@ -9,16 +9,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Set up session handling
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "your_secret_key", // Use a secret key to sign the session
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false }, // Set `secure: true` if using HTTPS in production
-  })
-);
+// Default route for the root URL
+app.get("/", (req, res) => {
+  res.send("Welcome to the backend API! Use /api/login to authenticate.");
+});
 
+// Login route (POST)
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -40,16 +36,14 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// Add GET route for login status check
+// Check login status (GET)
 app.get("/api/login", (req, res) => {
   if (req.session.user) {
-    // If the user is logged in (session exists)
     res.json({ message: "You are logged in", user: req.session.user });
   } else {
-    // If the user is not logged in
     res.status(401).json({ message: "You are not logged in" });
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
