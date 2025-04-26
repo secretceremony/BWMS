@@ -7,11 +7,10 @@ require("dotenv").config();
 
 const app = express();
 
-// --- CORS configuration ---
 const corsOptions = {
-  origin: 'https://bwms-bae.vercel.app/', // Adjust based on your frontend URL
+  origin: 'https://bwms-bae.vercel.app',
   methods: ['GET', 'POST'],
-  credentials: true, // Allow credentials (cookies)
+  credentials: true,
 };
 
 // Middlewares
@@ -25,10 +24,9 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production', // Set secure: true in production
-      httpOnly: true, // Keep this true for security
+      secure: process.env.NODE_ENV === 'production', // Or simply true if always HTTPS
+      httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24, // 1 day
-      // sameSite: 'Lax', // Consider adding SameSite if needed, but often default works with credentials:true
     },
     proxy: true // <-- Add this line to trust the proxy (like Railway)
   })
