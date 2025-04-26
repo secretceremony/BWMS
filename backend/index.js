@@ -9,7 +9,7 @@ const app = express();
 
 // --- CORS configuration ---
 const corsOptions = {
-  origin: 'http://localhost:5173', // Adjust based on your frontend URL
+  origin: 'https://bwms-bae.vercel.app/', // Adjust based on your frontend URL
   methods: ['GET', 'POST'],
   credentials: true, // Allow credentials (cookies)
 };
@@ -25,10 +25,12 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // True if HTTPS
-      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Set secure: true in production
+      httpOnly: true, // Keep this true for security
       maxAge: 1000 * 60 * 60 * 24, // 1 day
+      // sameSite: 'Lax', // Consider adding SameSite if needed, but often default works with credentials:true
     },
+    proxy: true // <-- Add this line to trust the proxy (like Railway)
   })
 );
 

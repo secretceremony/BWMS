@@ -28,7 +28,7 @@ const Profile = () => {
   const fetchUser = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/user`, { withCredentials: true });
-      setUser(response.data); 
+      setUser(response.data.user); // <-- Fix: get the real user object
     } catch (error) {
       console.error('Failed to fetch user:', error);
       setSnackbarMessage('Failed to fetch user data.');
@@ -47,7 +47,6 @@ const Profile = () => {
     };
 
     try {
-      // NOTE: Adjust endpoint depending on your real backend route
       const response = await axios.post(`${API_BASE_URL}/api/submit`, payload, { withCredentials: true });
       setSnackbarMessage('Data sent successfully!');
       setSnackbarSeverity('success');
