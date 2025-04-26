@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
+
+// Pages
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
+import Profile from './pages/Profile';
+import StockManagement from './pages/StockManagement';
+import Report from './pages/Reports';
+import History from './pages/History'; // ✅ Tambahkan import History
 
-// Protected Route component
-const ProtectedRoute = ({ children, isAuthenticated }) => {
+// Components
+import Layout from './components/Layout';
+
+// Protected Route
+const ProtectedRoute = ({ isAuthenticated, children }) => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -15,12 +24,11 @@ const ProtectedRoute = ({ children, isAuthenticated }) => {
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null); // { id, email, username, role }
-  const [loading, setLoading] = useState(false); // for login/logout only
-  const [initialLoading, setInitialLoading] = useState(true); // for session check
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Check existing user session when app loads
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -43,13 +51,11 @@ function App() {
     checkSession();
   }, []);
 
-  // Handle login
   const handleLogin = async (email, password) => {
     setLoading(true);
     setError('');
     try {
       const res = await axios.post('http://localhost:8080/api/login', { email, password }, { withCredentials: true });
-
       if (res.data.message === "Login successful" && res.data.user) {
         setIsAuthenticated(true);
         setUser(res.data.user);
@@ -59,7 +65,7 @@ function App() {
         setUser(null);
       }
     } catch (err) {
-      console.error('Login error', err.response?.data);
+      console.error('Login error:', err.response?.data);
       const errorMessage = err.response?.data?.error || 'Login failed';
       setError(errorMessage);
       setIsAuthenticated(false);
@@ -69,7 +75,6 @@ function App() {
     }
   };
 
-  // Handle logout
   const handleLogout = async () => {
     setLoading(true);
     try {
@@ -83,7 +88,6 @@ function App() {
     }
   };
 
-  // Show loading screen only during initial session check
   if (initialLoading) {
     return <div>Loading...</div>;
   }
@@ -91,6 +95,7 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Login Page */}
         <Route
           path="/login"
           element={
@@ -102,26 +107,69 @@ function App() {
           }
         />
 
+        {/* Protected Routes with Layout */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <Layout onLogout={handleLogout}>
+                <Dashboard user={user} />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/dashboard"
           element={
             <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <Dashboard user={user} onLogout={handleLogout} />
+              <Layout onLogout={handleLogout}>
+                <Dashboard user={user} />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <Layout onLogout={handleLogout}>
+                <Profile user={user} />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/stock-management"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <Layout onLogout={handleLogout}>
+                <StockManagement user={user} />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <Layout onLogout={handleLogout}>
+                <Report user={user} />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <Layout onLogout={handleLogout}>
+                <History user={user} />
+              </Layout>
             </ProtectedRoute>
           }
         />
 
-        <Route
-          path="/"
-          element={
-            isAuthenticated ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-
+        {/* Not Found Page */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
