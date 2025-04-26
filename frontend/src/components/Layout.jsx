@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react'; // Removed useEffect, useState as user prop is used
 import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, AppBar, Toolbar, Typography, IconButton } from '@mui/material';
 import { Home, Inventory, Assessment, Person, History, Logout, Menu as MenuIcon, Star as StarIcon } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useNavigate, Outlet } from 'react-router-dom'; // Import Outlet
+// axios and user fetching removed as it's handled by App.js and passed via props
 
 const drawerWidth = 240;
 
-const Layout = ({ children, onLogout }) => {
+// Receive the user object and onLogout function as props from App.js
+const Layout = ({ onLogout, user }) => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null); // New: state to hold user info
+  // Removed local user state and useEffect for fetching user
 
   const menuItems = [
     { text: 'Dashboard', icon: <Home />, path: '/dashboard' },
@@ -22,22 +23,8 @@ const Layout = ({ children, onLogout }) => {
     navigate(path);
   };
 
-  useEffect(() => {
-    // Fetch user info saat Layout pertama kali dipasang
-    const fetchUser = async () => {
-      try {
-        const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/user`, {
-          withCredentials: true,
-        });
-        setUser(res.data.user);
-        console.log('Fetched user:', res.data.user);
-      } catch (err) {
-        console.error('Error fetching user:', err.response?.data || err.message);
-      }
-    };
+  // Removed useEffect for fetching user inside Layout
 
-    fetchUser();
-  }, []);
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -51,30 +38,37 @@ const Layout = ({ children, onLogout }) => {
       >
         <Toolbar>
           <IconButton color="inherit" edge="start" sx={{ mr: 2 }}>
-            <MenuIcon />
+            <MenuIcon /> {/* You might want to add functionality to toggle drawer */}
           </IconButton>
           <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
-            BiruniWMS {user ? `- Hello, ${user.name}` : ''}
+            BiruniWMS {user ? `- Hello, ${user.username}` : ''} {/* Use user prop, assuming username property */}
           </Typography>
-          <IconButton color="inherit">
+          {/* Removed the StarIcon, add back if needed */}
+          {/* <IconButton color="inherit">
             <StarIcon />
-          </IconButton>
+          </IconButton> */}
+           <IconButton color="inherit" onClick={onLogout} title="Logout">
+             <Logout />
+           </IconButton>
         </Toolbar>
       </AppBar>
 
       {/* Sidebar */}
       <Drawer
-        variant="permanent"
+        variant="permanent" // Consider making this responsive with a temporary variant on mobile
         sx={{
           width: drawerWidth,
           flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
+          [`& .MuiDrawer-paper`]: { // Use theme.breakpoints for responsiveness
+             width: drawerWidth,
+             boxSizing: 'border-box',
+             // Ensure drawer is below AppBar
+             marginTop: '64px', // Height of default AppBar
+             // You might need to adjust this based on your AppBar height
           },
         }}
       >
-        <Toolbar />
+        {/* Removed Toolbar inside Drawer, marginTop handles the space */}
         <Box sx={{ overflow: 'auto' }}>
           <List>
             {menuItems.map((item) => (
@@ -83,26 +77,33 @@ const Layout = ({ children, onLogout }) => {
                 <ListItemText primary={item.text} />
               </ListItem>
             ))}
-            <ListItem button onClick={onLogout}>
+            {/* Logout button in the sidebar */}
+            {/* Moved logout to AppBar for clearer visibility, but can keep here too */}
+             {/* <ListItem button onClick={onLogout}>
               <ListItemIcon><Logout /></ListItemIcon>
               <ListItemText primary="Logout" />
-            </ListItem>
+            </ListItem> */}
           </List>
         </Box>
       </Drawer>
 
-      {/* Main content */}
+      {/* Main content area */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
-          bgcolor: '#f5f5f5',
-          minHeight: '100vh',
+          bgcolor: '#f5f5f5', // Background color for content area
+          minHeight: '100vh', // Ensure it takes at least full viewport height
+          // Add padding/margin top to account for fixed AppBar
+          marginTop: '64px', // Height of default AppBar
         }}
       >
-        <Toolbar />
-        {children}
+        {/* Removed Toolbar here */}
+
+        {/* THIS IS THE FIX: RENDER THE MATCHED NESTED ROUTE CONTENT HERE */}
+        <Outlet />
+
       </Box>
     </Box>
   );
