@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; 
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -21,6 +21,7 @@ import {
   DialogActions,
 } from '@mui/material';
 
+// --- Initial Data ---
 const initialItems = [
   {
     id: '001',
@@ -49,81 +50,136 @@ const initialItems = [
     supplier: 'Supplier C',
     status: 'Available',
   },
+  // Tambahkan item lain jika perlu
 ];
 
 const StockManagement = () => {
+  // --- State ---
+  // State utama untuk menyimpan daftar item
   const [items, setItems] = useState(initialItems);
+
+  // State untuk mengontrol filter dan search
+  const [filterCategory, setFilterCategory] = useState('');
+  // const [searchQuery, setSearchQuery] = useState(''); // State untuk search (belum diimplementasikan logikanya)
+
+  // State untuk mengontrol dialog konfirmasi delete
   const [openConfirm, setOpenConfirm] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState(null);
 
+  // --- Handlers ---
+  // Handler untuk klik tombol Delete
   const handleDeleteClick = (id) => {
     setSelectedItemId(id);
     setOpenConfirm(true);
   };
 
+  // Handler untuk konfirmasi Delete pada dialog
   const handleConfirmDelete = () => {
     setItems((prevItems) => prevItems.filter(item => item.id !== selectedItemId));
     setOpenConfirm(false);
     setSelectedItemId(null);
   };
 
+  // Handler untuk batal Delete pada dialog
   const handleCancelDelete = () => {
     setOpenConfirm(false);
     setSelectedItemId(null);
   };
 
+  // Handler untuk klik tombol Edit (masih placeholder)
   const handleEdit = (id) => {
     console.log('Edit item with ID:', id);
     // Nanti bisa redirect ke edit page atau buka modal edit
   };
 
+  // Handler untuk perubahan nilai filter kategori
+  const handleFilterChange = (event) => {
+      setFilterCategory(event.target.value);
+  };
+
+    // Handler untuk perubahan input search (jika diimplementasikan)
+    // const handleSearchChange = (event) => {
+    //     setSearchQuery(event.target.value);
+    // };
+
+
+  // --- Derived State / Computed Data ---
+  // Item yang akan ditampilkan setelah filter dan/atau search diterapkan
+  const filteredItems = items.filter(item => {
+    // Logika filter berdasarkan kategori yang dipilih
+    const categoryMatch = filterCategory === '' || item.category === filterCategory;
+
+    // Logika search (jika search diimplementasikan dan diaktifkan)
+    // const searchMatch = searchQuery === '' ||
+    //   Object.values(item).some(value =>
+    //     String(value).toLowerCase().includes(searchQuery.toLowerCase())
+    //   );
+
+    // Gabungkan logika filter dan search
+    return categoryMatch; // && searchMatch; // Gabungkan jika search aktif
+  });
+
+  // --- Render ---
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'grey.100' }}>
       <Box component="main" sx={{ flexGrow: 1, p: 4 }}>
+        {/* Title */}
         <Typography variant="h4" fontWeight="bold" mb={4}>
           Stock Management
         </Typography>
 
+        {/* Action Buttons */}
         <Stack direction="row" spacing={2} mb={4} flexWrap="wrap">
           <Button variant="contained" color="primary">Add Item</Button>
           <Button variant="contained" color="primary">Incoming Goods</Button>
           <Button variant="contained" color="primary">Outgoing Goods</Button>
         </Stack>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4} flexWrap="wrap">
-  <Select
-    defaultValue=""
-    displayEmpty
-    sx={{
-      bgcolor: 'white',
-      px: 2,
-      py: 1,
-      border: '1px solid',
-      borderColor: 'grey.300',
-      borderRadius: 1,
-      minWidth: '150px',
-    }}
-  >
-    <MenuItem value="">
-      <em>Filter by Category</em>
-    </MenuItem>
-    <MenuItem value="Electronics">Electronics</MenuItem>
-    <MenuItem value="Furniture">Furniture</MenuItem>
-    <MenuItem value="Apparel">Apparel</MenuItem>
-  </Select>
 
-  <InputBase
-    placeholder="Search..."
-    sx={{
-      bgcolor: 'white',
-      px: 2,
-      py: 0.5,
-      border: '1px solid',
-      borderColor: 'grey.300',
-      borderRadius: 1,
-      width: '200px', // kecilin width
-    }}
-  />
-</Stack>
+        {/* Filter and Search Section */}
+        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4} flexWrap="wrap" gap={2}> {/* Added gap for better spacing on wrap */}
+          {/* Category Filter Select */}
+          <Select
+            displayEmpty
+            sx={{
+              bgcolor: 'white',
+              px: 2,
+              py: 1,
+              border: '1px solid',
+              borderColor: 'grey.300',
+              borderRadius: 1,
+              minWidth: '150px',
+            }}
+            value={filterCategory} // Hubungkan Select dengan state filterCategory
+            onChange={handleFilterChange} // Gunakan handler terpisah
+          >
+            <MenuItem value=""> {/* Nilai kosong untuk opsi "Semua Kategori" */}
+              <em>Filter by Category</em>
+            </MenuItem>
+            <MenuItem value="Electronics">Electronics</MenuItem>
+            <MenuItem value="Furniture">Furniture</MenuItem>
+            <MenuItem value="Apparel">Apparel</MenuItem>
+            {/* Tambahkan MenuItem lain sesuai kategori item Anda */}
+          </Select>
+
+          {/* Search Input */}
+          <InputBase
+            placeholder="Search..."
+            sx={{
+              bgcolor: 'white',
+              px: 2,
+              py: 0.5,
+              border: '1px solid',
+              borderColor: 'grey.300',
+              borderRadius: 1,
+              width: { xs: '100%', sm: '200px' }, // Responsif width
+            }}
+             // Hubungkan InputBase dengan state searchQuery (jika diimplementasikan)
+            // value={searchQuery}
+            // onChange={handleSearchChange} // Gunakan handler terpisah
+          />
+        </Stack>
+
+        {/* Items Table */}
         <Card>
           <TableContainer component={Paper}>
             <Table>
@@ -140,8 +196,9 @@ const StockManagement = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {items.map((item, index) => (
-                  <TableRow key={index} hover>
+                {/* Render baris tabel dari filteredItems */}
+                {filteredItems.map((item) => (
+                  <TableRow key={item.id} hover> {/* Menggunakan item.id sebagai key */}
                     <TableCell>{item.id}</TableCell>
                     <TableCell>{item.name}</TableCell>
                     <TableCell>{item.category}</TableCell>
@@ -149,6 +206,7 @@ const StockManagement = () => {
                     <TableCell>{item.stock}</TableCell>
                     <TableCell>{item.supplier}</TableCell>
                     <TableCell>
+                      {/* Status Badge */}
                       <Typography
                         sx={{
                           px: 2,
@@ -164,6 +222,7 @@ const StockManagement = () => {
                       </Typography>
                     </TableCell>
                     <TableCell>
+                      {/* Action Buttons */}
                       <Stack direction="row" spacing={1}>
                         <Button
                           variant="contained"
@@ -185,6 +244,14 @@ const StockManagement = () => {
                     </TableCell>
                   </TableRow>
                 ))}
+                {/* Tampilkan pesan jika tidak ada item setelah difilter/search */}
+                {filteredItems.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={8} align="center">
+                            No items found matching the criteria.
+                        </TableCell>
+                    </TableRow>
+                )}
               </TableBody>
             </Table>
           </TableContainer>

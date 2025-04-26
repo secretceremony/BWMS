@@ -1,8 +1,14 @@
-Test# Laporan Progres Mingguan - [Nama Proyek]
-**Kelompok**: [Nomor Kelompok]
-**Mitra**: [Nama Mitra]
-**Pekan ke-**: [9-15]
-**Tanggal**: [DD/MM/YYYY]
+# 📌 Laporan Progres Mingguan - **Sistem Manajemen Gudang Biruni**
+**Kelompok**: 7
+<br>
+**Adhyasta Firdaus (10231005)**<br>
+**Ansellma Tita Pakartiwuri Putri (10231017)**<br>
+**Dhiya Afifah (10231031)**<br>
+**Gabriel Karmen Sanggalangi (10231039)**
+
+**Mitra**: PT. Biruni Altha Etam 
+**Pekan ke-**: 11
+**Tanggal**: 22 April 2025
 
 ## Progress Summary
 [Ringkasan progres minggu ini dalam 2-3 kalimat]

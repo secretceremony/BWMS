@@ -160,6 +160,74 @@ app.post("/api/logout", (req, res) => {
   });
 });
 
+// --- Profile Update Route ---
+app.put("/api/profile/update", async (req, res) => {
+  // 1. Periksa apakah user sudah login
+  if (!req.session || !req.session.user) {
+      console.log("Profile update failed: Not authenticated");
+      return res.status(401).json({ error: "Not authenticated. Please log in." });
+  }
+
+  // Ambil ID user dari sesi
+  const userId = req.session.user.id;
+
+  // 2. Ambil data update dari request body
+  // Sesuaikan dengan field apa saja yang ingin diupdate
+  const { username, email } = req.body;
+
+  // Basic validation (pastikan data diterima)
+  if (username === undefined || email === undefined) { // Use undefined check as values can be empty strings
+       console.log("Profile update failed: Missing username or email in body");
+       return res.status(400).json({ error: "Username and email are required." });
+  }
+
+  // Optional: Add more validation here (e.g., email format, username length)
+
+  try {
+      // 3. Lakukan query database untuk update
+      // PERHATIAN: Pastikan nama tabel (users) dan kolom (username, email, id) sesuai dengan database Anda
+      const updateQuery = `
+          UPDATE users
+          SET username = $1, email = $2
+          WHERE id = $3
+          RETURNING id, username, email, role; -- Return updated user data
+      `;
+      const result = await pool.query(updateQuery, [username, email, userId]);
+
+      // Periksa apakah ada baris yang terupdate
+      if (result.rowCount === 0) {
+           // Ini bisa terjadi jika user dihapus setelah login, tapi sesinya masih ada
+           console.log(`Profile update failed: User with ID ${userId} not found in DB`);
+           // Hancurkan sesi jika user tidak lagi ditemukan
+           req.session.destroy();
+           return res.status(404).json({ error: "User not found or already deleted." });
+      }
+
+      // 4. Update data user di sesi jika update berhasil (opsional tapi disarankan)
+      // Ini penting agar /api/user route mengembalikan data terbaru tanpa perlu login ulang
+      const updatedUser = result.rows[0];
+      req.session.user = {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          username: updatedUser.username,
+          role: updatedUser.role,
+          // Sesuaikan jika ada field lain yang disimpan di sesi
+      };
+      console.log("Session updated for user:", req.session.user.email);
+
+
+      // 5. Kirim respons berhasil
+      // Kirim data user yang terupdate atau hanya pesan sukses
+      res.json({ message: "Profile updated successfully!", user: updatedUser });
+      console.log(`Profile updated successfully for user ID ${userId}`);
+
+  } catch (err) {
+      console.error('Error during profile update:', err);
+      // Tangani error database
+      res.status(500).json({ error: 'Something went wrong during profile update.' });
+  }
+});
+
 // --- Start server ---
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
