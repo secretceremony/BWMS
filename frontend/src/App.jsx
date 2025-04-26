@@ -1,88 +1,127 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import axios from 'axios';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 
-// Mock user database
-const users = [
-  { username: 'admin', password: 'admin123', role: 'admin' },
-  { username: 'manager', password: 'manager123', role: 'manager' }
-];
-
-// Protected Route component to handle authorization
-const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('user') !== null;
-  
+// Protected Route component
+const ProtectedRoute = ({ children, isAuthenticated }) => {
   if (!isAuthenticated) {
-    // Redirect to login if not authenticated
     return <Navigate to="/login" replace />;
   }
-  
   return children;
 };
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState('');
-  const [username, setUsername] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null); // { id, email, username, role }
+  const [loading, setLoading] = useState(false); // for login/logout only
+  const [initialLoading, setInitialLoading] = useState(true); // for session check
   const [error, setError] = useState('');
 
-  // Check for existing session on load
+  // Check existing user session when app loads
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const userData = JSON.parse(storedUser);
-      setIsAuthenticated(true);
-      setUserRole(userData.role);
-      setUsername(userData.username);
-    }
+    const checkSession = async () => {
+      try {
+        const res = await axios.get('http://localhost:8080/api/user', { withCredentials: true });
+        if (res.data.user) {
+          setIsAuthenticated(true);
+          setUser(res.data.user);
+        } else {
+          setIsAuthenticated(false);
+          setUser(null);
+        }
+      } catch (err) {
+        console.log('Session check failed:', err.response?.data?.error || err.message);
+        setIsAuthenticated(false);
+        setUser(null);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    checkSession();
   }, []);
 
-  const handleLogin = (username, password) => {
+  // Handle login
+  const handleLogin = async (email, password) => {
     setLoading(true);
     setError('');
-    
-    // Simulate API call with a delay
-    setTimeout(() => {
-      const user = users.find(u => u.username === username && u.password === password);
-      
-      if (user) {
+    try {
+      const res = await axios.post('http://localhost:8080/api/login', { email, password }, { withCredentials: true });
+
+      if (res.data.message === "Login successful" && res.data.user) {
         setIsAuthenticated(true);
-        setUserRole(user.role);
-        setUsername(user.username);
-        localStorage.setItem('user', JSON.stringify({ username: user.username, role: user.role }));
+        setUser(res.data.user);
       } else {
-        setError('Invalid username or password');
+        setError("Login successful but user data not received.");
+        setIsAuthenticated(false);
+        setUser(null);
       }
+    } catch (err) {
+      console.error('Login error', err.response?.data);
+      const errorMessage = err.response?.data?.error || 'Login failed';
+      setError(errorMessage);
+      setIsAuthenticated(false);
+      setUser(null);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserRole('');
-    setUsername('');
-    localStorage.removeItem('user');
+  // Handle logout
+  const handleLogout = async () => {
+    setLoading(true);
+    try {
+      await axios.post('http://localhost:8080/api/logout', {}, { withCredentials: true });
+      setIsAuthenticated(false);
+      setUser(null);
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Show loading screen only during initial session check
+  if (initialLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={
-          isAuthenticated ? 
-            <Navigate to="/dashboard" replace /> : 
-            <Login onLogin={handleLogin} error={error} loading={loading} />
-        } />
-        
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard username={username} userRole={userRole} onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route
+          path="/login"
+          element={
+            isAuthenticated ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Login onLogin={handleLogin} error={error} loading={loading} />
+            )
+          }
+        />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <Dashboard user={user} onLogout={handleLogout} />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/"
+          element={
+            isAuthenticated ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
