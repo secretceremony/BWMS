@@ -14,12 +14,19 @@ const Login = ({ onLogin, error, loading }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) return; // Optional: basic validation
 
+    
+    if (!email || !password) {
+      console.log('Email or Password is empty');
+      return; 
+    }
+
+    console.log('Email:', email);
+    console.log('Password:', password);
+    
     try {
-      await onLogin(email, password);
+      await onLogin(email, password); 
     } catch (err) {
-      // No need to handle error here — parent handles it
       console.error('Login error:', err);
     }
   };
@@ -86,8 +93,6 @@ const Login = ({ onLogin, error, loading }) => {
                 }}
                 sx={{ mb: 1 }}
               />
-
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}></Box>
 
               <Button
                 type="submit"

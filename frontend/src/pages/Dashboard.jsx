@@ -1,9 +1,7 @@
 import React from 'react';
 import { Box, Card, CardContent, Typography, Grid } from '@mui/material';
-// Import ResponsiveContainer from recharts
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, Legend, ResponsiveContainer } from 'recharts';
 
-// Dummy data (keep as is)
 const stats = [
   { title: 'Total Inventory', value: '5,678' },
   { title: 'Low Stock Alerts', value: '12' },

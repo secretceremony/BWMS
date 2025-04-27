@@ -1,23 +1,23 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
-const session = require("express-session");
+const jwt = require("jsonwebtoken"); 
 const pool = require("./db");
-require("dotenv").config(); // Make sure dotenv is configured to load .env file
 
 const app = express();
 
-// --- CORS configuration ---
-// Allow multiple origins based on environment
+
+const JWT_SECRET = process.env.JWT_SECRET || "kunci-rahasia-jwt-untuk-development";
+const JWT_EXPIRY = process.env.JWT_EXPIRY || '24h';
+
 const allowedOrigins = [
-    'http://localhost:5173', // Your local frontend development URL
-    'https://bwms-bae.vercel.app', // Your public frontend URL on Vercel
-    // Add other frontend origins if needed
+  'http://localhost:5173',
+  'https://bwms-bae.vercel.app'
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = `The CORS policy for this site does not allow access from the specified Origin: ${origin}`;
@@ -25,215 +25,152 @@ const corsOptions = {
     }
     return callback(null, true);
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // Add methods your frontend will use
-  credentials: true, // Allow credentials (cookies)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  credentials: true,
 };
 
-// Middlewares
 app.use(cors(corsOptions));
-app.use(express.json()); // Parse JSON body
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies (if you have forms)
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-
-// Session configuration
-app.use(
-  session({
-    // Use the environment variable SESSION_SECRET for production, fallback to a default for dev (but use a strong one!)
-    secret: process.env.SESSION_SECRET || "a-very-strong-default-secret-for-dev", // !! CHANGE THIS DEFAULT !!
-    resave: false, // Don't save session if unmodified
-    saveUninitialized: false, // Don't create session until something is stored
-    store: /* Add a session store here for production (e.g., connect-pg-simple) */ undefined, // In-memory store is NOT for production!
-
-    cookie: {
-      // Set secure to true only if the connection is HTTPS
-      // Railway terminates SSL, so 'proxy: true' is needed for express to detect HTTPS
-      secure: process.env.NODE_ENV === 'production' && process.env.RAILWAY_ENVIRONMENT !== undefined, // Be explicit for Railway HTTPS
-      httpOnly: true, // Keep true
-      maxAge: 1000 * 60 * 60 * 24, // 1 day
-      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax', // Often needed for cross-site cookies in modern browsers (None requires secure: true)
+const generateToken = (user) => {
+  return jwt.sign(
+    { 
+      id: user.id, 
+      email: user.email, 
+      username: user.username,
+      role: user.role 
     },
-    proxy: true // <-- Required if running behind a reverse proxy like Railway, needed for 'secure' cookie flag
-  })
-);
+    JWT_SECRET, 
+    { expiresIn: JWT_EXPIRY }
+  );
+};
 
-// --- Routes ---
 
-// Health check
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; 
+  
+  if (!token) {
+    return res.status(401).json({ error: "Akses ditolak. Token tidak diberikan." });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(403).json({ error: "Token tidak valid atau sudah kadaluarsa" });
+  }
+};
+
 app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });
 
-// Authentication check for frontend
-app.get("/api/user", (req, res) => {
-  if (req.session && req.session.user) {
-    // Avoid sending password hash back!
-    const user = {
-      id: req.session.user.id,
-      email: req.session.user.email,
-      username: req.session.user.username,
-      role: req.session.user.role,
-      // Add other non-sensitive user data from session
-    };
-    res.json({ user: user });
-  } else {
-    res.status(401).json({ error: "Not authenticated" });
-  }
+app.get("/api/user", authenticateToken, (req, res) => {
+
+  const user = {
+    id: req.user.id,
+    email: req.user.email,
+    username: req.user.username,
+    role: req.user.role
+  };
+  res.json({ user });
 });
 
-// Login route
+// Login dengan JWT
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Basic validation
     if (!email || !password) {
-        return res.status(400).json({ error: "Email and password are required" });
+      return res.status(400).json({ error: "Email dan password dibutuhkan" });
     }
 
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = result.rows[0];
 
     if (!user) {
-      console.log(`Login failed: User not found for email ${email}`);
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Kredensial tidak valid' });
     }
 
-    // Compare passwords (ensure 'password' column exists and contains hashed passwords)
-    const isMatch = await bcrypt.compare(password, user.password); // Make sure 'user.password' is the HASHED password
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      console.log(`Login failed: Password mismatch for user ${email}`);
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Kredensial tidak valid' });
     }
 
-    // Store non-sensitive user info in the session
-    req.session.user = {
+  
+    const token = generateToken(user);
+    console.log("Token yang dibuat:", token); 
+
+    const responseUser = {
       id: user.id,
       email: user.email,
       username: user.username,
-      role: user.role,
-      // Only store necessary, non-sensitive data here
+      role: user.role
     };
 
-    console.log("Session created for user:", req.session.user.email);
-
-    // Send back only non-sensitive user info
-     const responseUser = {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      role: user.role,
-      // Add other non-sensitive user data
-    };
-
-      res.json({ message: "Login successful", user: responseUser });
-    // });
-
+    res.json({
+      message: "Login berhasil",
+      user: responseUser,
+      token  
+    });
 
   } catch (err) {
-    console.error('Error during login:', err);
-    res.status(500).json({ error: 'Something went wrong during login' });
+    console.error('Error saat login:', err);
+    res.status(500).json({ error: 'Terjadi kesalahan saat login' });
   }
 });
 
-// Logout route
+
 app.post("/api/logout", (req, res) => {
-  // Check if a session exists before destroying
-  if (!req.session) {
-       return res.json({ message: "Already logged out or no session" });
-  }
-
-  req.session.destroy((err) => {
-    if (err) {
-      console.error('Error destroying session:', err);
-      return res.status(500).json({ error: "Failed to log out" });
-    }
-    // Clear the session cookie from the browser
-    res.clearCookie("connect.sid", {
-        // Add cookie options that were used when setting it
-        secure: process.env.NODE_ENV === 'production' && process.env.RAILWAY_ENVIRONMENT !== undefined,
-        httpOnly: true,
-        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
-        path: '/' // Match the path the cookie was set for
-    });
-    console.log("Session destroyed");
-    res.json({ message: "Logged out successfully" });
-  });
+  res.json({ message: "Logout berhasil" });
 });
 
-// --- Profile Update Route ---
-app.put("/api/profile/update", async (req, res) => {
-  // 1. Periksa apakah user sudah login
-  if (!req.session || !req.session.user) {
-      console.log("Profile update failed: Not authenticated");
-      return res.status(401).json({ error: "Not authenticated. Please log in." });
-  }
-
-  // Ambil ID user dari sesi
-  const userId = req.session.user.id;
-
-  // 2. Ambil data update dari request body
-  // Sesuaikan dengan field apa saja yang ingin diupdate
+app.put("/api/profile/update", authenticateToken, async (req, res) => {
+  const userId = req.user.id;
   const { username, email } = req.body;
 
-  // Basic validation (pastikan data diterima)
-  if (username === undefined || email === undefined) { // Use undefined check as values can be empty strings
-       console.log("Profile update failed: Missing username or email in body");
-       return res.status(400).json({ error: "Username and email are required." });
+  if (username === undefined || email === undefined) {
+    return res.status(400).json({ error: "Username dan email dibutuhkan." });
   }
 
-  // Optional: Add more validation here (e.g., email format, username length)
-
   try {
-      // 3. Lakukan query database untuk update
-      // PERHATIAN: Pastikan nama tabel (users) dan kolom (username, email, id) sesuai dengan database Anda
-      const updateQuery = `
-          UPDATE users
-          SET username = $1, email = $2
-          WHERE id = $3
-          RETURNING id, username, email, role; -- Return updated user data
-      `;
-      const result = await pool.query(updateQuery, [username, email, userId]);
+    const updateQuery = `
+      UPDATE users
+      SET username = $1, email = $2
+      WHERE id = $3
+      RETURNING id, username, email, role;
+    `;
+    const result = await pool.query(updateQuery, [username, email, userId]);
 
-      // Periksa apakah ada baris yang terupdate
-      if (result.rowCount === 0) {
-           // Ini bisa terjadi jika user dihapus setelah login, tapi sesinya masih ada
-           console.log(`Profile update failed: User with ID ${userId} not found in DB`);
-           // Hancurkan sesi jika user tidak lagi ditemukan
-           req.session.destroy();
-           return res.status(404).json({ error: "User not found or already deleted." });
-      }
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "User tidak ditemukan atau sudah dihapus." });
+    }
 
-      // 4. Update data user di sesi jika update berhasil (opsional tapi disarankan)
-      // Ini penting agar /api/user route mengembalikan data terbaru tanpa perlu login ulang
-      const updatedUser = result.rows[0];
-      req.session.user = {
-          id: updatedUser.id,
-          email: updatedUser.email,
-          username: updatedUser.username,
-          role: updatedUser.role,
-          // Sesuaikan jika ada field lain yang disimpan di sesi
-      };
-      console.log("Session updated for user:", req.session.user.email);
+    const updatedUser = result.rows[0];
+    
+    const token = generateToken(updatedUser);
 
-
-      // 5. Kirim respons berhasil
-      // Kirim data user yang terupdate atau hanya pesan sukses
-      res.json({ message: "Profile updated successfully!", user: updatedUser });
-      console.log(`Profile updated successfully for user ID ${userId}`);
+    res.json({ 
+      message: "Profil berhasil diperbarui!", 
+      user: updatedUser,
+      token  
+    });
 
   } catch (err) {
-      console.error('Error during profile update:', err);
-      // Tangani error database
-      res.status(500).json({ error: 'Something went wrong during profile update.' });
+    console.error('Error saat memperbarui profil:', err);
+    res.status(500).json({ error: 'Terjadi kesalahan saat memperbarui profil.' });
   }
 });
 
-// --- Start server ---
+app.post("/api/token/refresh", authenticateToken, (req, res) => {
+  const token = generateToken(req.user);
+  res.json({ token });
+});
+
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-  // In production, this might be misleading as Railway provides HTTPS
-  if (process.env.NODE_ENV === 'production') {
-      console.log('Note: Running in production mode. Access via public URL.');
-  }
 });
