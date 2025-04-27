@@ -50,7 +50,7 @@ function App() {
           setIsAuthenticated(true);
           setUser(res.data.user);
           if (res.data.token) {
-            localStorage.setItem('jwtToken', res.data.token); 
+            localStorage.setItem('token', res.data.token); 
             setIsAuthenticated(true);
             setUser(res.data.user); 
           }
@@ -91,10 +91,10 @@ function App() {
       const res = await axios.post(`${API_BASE_URL}/api/login`, { email, password }, { withCredentials: true });
       
       console.log("Login Response:", res.data); 
-  
+  localStorage.setItem('token', res.data.token);
       
       if (res.data.token) {
-        localStorage.setItem('jwtToken', res.data.token);
+        localStorage.setItem('token', res.data.token);
         setIsAuthenticated(true);
         setUser(res.data.user); 
       } else {

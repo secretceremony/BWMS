@@ -1,29 +1,14 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const pool = require('../db');
+const bcrypt = require("bcryptjs");
+const pool = require("../db");
+const { generateToken } = require("../utils/authUtils");
 
-const JWT_SECRET = process.env.JWT_SECRET || 'kunci-rahasia-jwt-untuk-development';
-const JWT_EXPIRY = process.env.JWT_EXPIRY || '24h';
-
-const generateToken = (user) => {
-  return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      role: user.role
-    },
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRY }
-  );
-};
-
-exports.login = async (req, res) => {
+// Handle user login
+const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email dan password dibutuhkan' });
+      return res.status(400).json({ error: "Email dan password dibutuhkan" });
     }
 
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -39,6 +24,7 @@ exports.login = async (req, res) => {
     }
 
     const token = generateToken(user);
+    console.log("Token yang dibuat:", token); // Log generated token
 
     const responseUser = {
       id: user.id,
@@ -48,47 +34,40 @@ exports.login = async (req, res) => {
     };
 
     res.json({
-      message: 'Login berhasil',
+      message: "Login berhasil",
       user: responseUser,
       token
     });
+
   } catch (err) {
     console.error('Error saat login:', err);
     res.status(500).json({ error: 'Terjadi kesalahan saat login' });
   }
 };
 
-exports.updateProfile = async (req, res) => {
-  const userId = req.user.id;
-  const { username, email } = req.body;
+// Handle user logout (simple server-side response)
+const logout = (req, res) => {
+  // In a JWT system, logout is typically handled client-side by discarding the token.
+  // This endpoint is more for confirming the action or performing server-side cleanup if needed.
+  res.json({ message: "Logout berhasil" });
+};
 
-  if (username === undefined || email === undefined) {
-    return res.status(400).json({ error: 'Username dan email dibutuhkan.' });
-  }
+// Handle token refresh
+const refreshToken = (req, res) => {
+  // `req.user` is available here due to the `authenticateToken` middleware
+  const userForToken = {
+      id: req.user.id,
+      email: req.user.email,
+      username: req.user.username,
+      role: req.user.role
+  };
+  const newToken = generateToken(userForToken);
+  res.json({ token: newToken });
+};
 
-  try {
-    const updateQuery = `
-      UPDATE users
-      SET username = $1, email = $2
-      WHERE id = $3
-      RETURNING id, username, email, role;
-    `;
-    const result = await pool.query(updateQuery, [username, email, userId]);
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'User tidak ditemukan atau sudah dihapus.' });
-    }
-
-    const updatedUser = result.rows[0];
-    const token = generateToken(updatedUser);
-
-    res.json({
-      message: 'Profil berhasil diperbarui!',
-      user: updatedUser,
-      token
-    });
-  } catch (err) {
-    console.error('Error saat memperbarui profil:', err);
-    res.status(500).json({ error: 'Terjadi kesalahan saat memperbarui profil.' });
-  }
+module.exports = {
+  login,
+  logout,
+  refreshToken
 };
