@@ -14,8 +14,9 @@ import {
   Typography,
   Paper,
   IconButton,
+  Divider,
 } from '@mui/material';
-import { ArrowBack, ArrowForward } from '@mui/icons-material';
+import { ArrowBack, ArrowForward, Edit, Delete } from '@mui/icons-material';
 
 const reports = [
   { id: '001', jenis: 'Stock In', tanggal: '2025-04-01' },
@@ -26,34 +27,39 @@ const reports = [
 const Report = () => {
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h5" fontWeight="bold" mb={4}>
-        Report
-      </Typography>
-
       {/* Cards */}
-      <Stack direction="row" spacing={2} mb={4}>
-        <Card sx={{ flex: 1, p: 4, minHeight: 100 }}>
-          <Typography variant="h6" align="center">Stock Report</Typography>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} mb={4}>
+        <Card sx={{ flex: 1, p: 3, textAlign: 'center', bgcolor: 'primary.light', color: 'white' }}>
+          <Typography variant="h6">Total Transactions</Typography>
+          <Typography variant="h4" fontWeight="bold" mt={1}>120</Typography>
         </Card>
-        <Card sx={{ flex: 1, p: 4, minHeight: 100 }}>
-          <Typography variant="h6" align="center">Transaction Report</Typography>
+        <Card sx={{ flex: 1, p: 3, textAlign: 'center', bgcolor: 'success.light', color: 'white' }}>
+          <Typography variant="h6">Total Stock Items</Typography>
+          <Typography variant="h4" fontWeight="bold" mt={1}>350</Typography>
         </Card>
       </Stack>
 
       {/* Actions */}
-      <Stack direction="row" spacing={2} mb={2}>
-        <Button variant="contained">Add</Button>
-        <Box sx={{ flexGrow: 1 }} />
+      <Stack
+        direction="row"
+        spacing={2}
+        alignItems="center"
+        justifyContent="space-between"
+        mb={2}
+      >
+        <Button variant="contained" size="small">
+          Add Report
+        </Button>
         <InputBase
-          placeholder="Search..."
+          placeholder="Search report..."
           sx={{
             bgcolor: 'white',
             px: 2,
-            py: 1,
+            py: 0.5,
             border: '1px solid',
             borderColor: 'grey.400',
-            borderRadius: 1,
-            minWidth: 200,
+            borderRadius: 2,
+            minWidth: { xs: '100%', sm: 250 },
           }}
         />
       </Stack>
@@ -67,17 +73,24 @@ const Report = () => {
                 <TableCell>ID</TableCell>
                 <TableCell>Jenis</TableCell>
                 <TableCell>Tanggal</TableCell>
-                <TableCell>Action</TableCell>
+                <TableCell align="center">Action</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {reports.map((report, index) => (
-                <TableRow key={index} hover>
+              {reports.map((report) => (
+                <TableRow key={report.id} hover>
                   <TableCell>{report.id}</TableCell>
                   <TableCell>{report.jenis}</TableCell>
                   <TableCell>{report.tanggal}</TableCell>
-                  <TableCell>
-                    <Button size="small" variant="outlined">View</Button>
+                  <TableCell align="center">
+                    <Stack direction="row" spacing={1} justifyContent="center">
+                      <IconButton size="small" color="primary">
+                        <Edit fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small" color="error">
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}

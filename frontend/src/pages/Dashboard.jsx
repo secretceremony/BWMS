@@ -1,7 +1,9 @@
 import React from 'react';
 import { Box, Card, CardContent, Typography, Grid } from '@mui/material';
-import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
+// Import ResponsiveContainer from recharts
+import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, Legend, ResponsiveContainer } from 'recharts';
 
+// Dummy data (keep as is)
 const stats = [
   { title: 'Total Inventory', value: '5,678' },
   { title: 'Low Stock Alerts', value: '12' },
@@ -42,12 +44,13 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 const Dashboard = () => {
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: { xs: 2, sm: 3 } }}> {/* Adjusted padding for smaller screens */}
+
       {/* Stats Section */}
       <Grid container spacing={2} mb={3}>
         {stats.map((stat, index) => (
           <Grid item xs={12} sm={6} md={3} key={index}>
-            <Card>
+            <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Typography variant="subtitle2" color="textSecondary">
                   {stat.title}
@@ -64,47 +67,52 @@ const Dashboard = () => {
       {/* Charts Section */}
       <Grid container spacing={2} mb={3}>
         <Grid item xs={12} md={6}>
-          <Card>
+          <Card sx={{ height: '100%' }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Inventory Movement Chart
               </Typography>
-              <LineChart width={400} height={250} data={inventoryMovementData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="incoming" stroke="#8884d8" />
-                <Line type="monotone" dataKey="outgoing" stroke="#82ca9d" />
-              </LineChart>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={inventoryMovementData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="incoming" stroke="#8884d8" />
+                  <Line type="monotone" dataKey="outgoing" stroke="#82ca9d" />
+                </LineChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Card>
+          <Card sx={{ height: '100%' }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Storage Pie Chart
               </Typography>
-              <PieChart width={400} height={250}>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  fill="#8884d8"
-                  label
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Legend />
-              </PieChart>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%" // Center the pie chart horizontally
+                    cy="50%" // Center the pie chart vertically
+                    outerRadius={80} // Adjust radius as needed
+                    fill="#8884d8"
+                    label // Show labels on pie slices
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </Grid>
@@ -113,7 +121,7 @@ const Dashboard = () => {
       {/* Transactions and Trend Section */}
       <Grid container spacing={2}>
         <Grid item xs={12} md={6}>
-          <Card>
+          <Card sx={{ height: '100%' }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Recent Transactions
@@ -130,18 +138,20 @@ const Dashboard = () => {
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Card>
+          <Card sx={{ height: '100%' }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Inventory Trend (Last 30 Days)
               </Typography>
-              <LineChart width={400} height={250} data={inventoryTrendData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="quantity" stroke="#8884d8" />
-              </LineChart>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={inventoryTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="quantity" stroke="#8884d8" />
+                </LineChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </Grid>

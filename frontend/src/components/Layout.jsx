@@ -1,15 +1,23 @@
-import React from 'react'; // Removed useEffect, useState as user prop is used
-import { Box, Drawer, List, ListItem, ListItemIcon, ListItemText, AppBar, Toolbar, Typography, IconButton } from '@mui/material';
-import { Home, Inventory, Assessment, Person, History, Logout, Menu as MenuIcon, Star as StarIcon } from '@mui/icons-material';
-import { useNavigate, Outlet } from 'react-router-dom'; // Import Outlet
-// axios and user fetching removed as it's handled by App.js and passed via props
+import React, { useState } from 'react';
+import {
+  Box, Drawer, List, ListItem, ListItemIcon, ListItemText,
+  AppBar, Toolbar, Typography, IconButton, Breadcrumbs, Link,
+  CssBaseline, Avatar, Divider, Tooltip
+} from '@mui/material';
+import {
+  Home, Inventory, Assessment, Person, History,
+  Logout, Menu as MenuIcon, ChevronLeft as ChevronLeftIcon
+} from '@mui/icons-material';
+import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 
 const drawerWidth = 240;
+const collapsedDrawerWidth = 70;
 
-// Receive the user object and onLogout function as props from App.js
 const Layout = ({ onLogout, user }) => {
   const navigate = useNavigate();
-  // Removed local user state and useEffect for fetching user
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopOpen, setDesktopOpen] = useState(true);
 
   const menuItems = [
     { text: 'Dashboard', icon: <Home />, path: '/dashboard' },
@@ -19,91 +27,209 @@ const Layout = ({ onLogout, user }) => {
     { text: 'History', icon: <History />, path: '/history' },
   ];
 
-  const handleNavigation = (path) => {
-    navigate(path);
+  const handleMobileDrawerToggle = () => {
+    setMobileOpen((prev) => !prev);
   };
 
-  // Removed useEffect for fetching user inside Layout
+  const handleDesktopDrawerToggle = () => {
+    setDesktopOpen((prev) => !prev);
+  };
 
+  const handleNavigation = (path) => {
+    navigate(path);
+    setMobileOpen(false);
+  };
+
+  const drawerContent = (
+    <Box sx={{ overflow: 'auto' }}>
+      <Toolbar sx={{ justifyContent: desktopOpen ? 'flex-end' : 'center', px: 1 }}>
+        <IconButton onClick={handleDesktopDrawerToggle} sx={{ display: { xs: 'none', md: 'block' } }}>
+          {desktopOpen ? <ChevronLeftIcon /> : <MenuIcon />}
+        </IconButton>
+      </Toolbar>
+      <Divider />
+      <List>
+        {menuItems.map((item) => (
+          <ListItem
+            button
+            key={item.text}
+            onClick={() => handleNavigation(item.path)}
+            sx={{
+              '&:hover': { backgroundColor: 'primary.light', color: 'white' },
+              justifyContent: desktopOpen ? 'initial' : 'center',
+              px: 2.5,
+            }}
+          >
+            <Tooltip title={!desktopOpen ? item.text : ''} placement="right">
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: desktopOpen ? 3 : 'auto',
+                  justifyContent: 'center',
+                }}
+              >
+                {item.icon}
+              </ListItemIcon>
+            </Tooltip>
+            {desktopOpen && <ListItemText primary={item.text} />}
+          </ListItem>
+        ))}
+      </List>
+      <Divider />
+      <List>
+        <ListItem
+          button
+          onClick={onLogout}
+          sx={{
+            mt: 'auto',
+            '&:hover': { backgroundColor: 'error.light', color: 'white' },
+            justifyContent: desktopOpen ? 'initial' : 'center',
+            px: 2.5,
+          }}
+        >
+          <Tooltip title={!desktopOpen ? 'Logout' : ''} placement="right">
+            <ListItemIcon
+              sx={{
+                minWidth: 0,
+                mr: desktopOpen ? 3 : 'auto',
+                justifyContent: 'center',
+              }}
+            >
+              <Logout />
+            </ListItemIcon>
+          </Tooltip>
+          {desktopOpen && <ListItemText primary="Logout" />}
+        </ListItem>
+      </List>
+    </Box>
+  );
+
+  // Breadcrumb logic
+  const pathnames = location.pathname.split('/').filter((x) => x);
 
   return (
     <Box sx={{ display: 'flex' }}>
-      {/* AppBar at the top */}
+      <CssBaseline />
       <AppBar
         position="fixed"
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
           backgroundColor: '#1976d2',
+          boxShadow: 3,
         }}
       >
         <Toolbar>
-          <IconButton color="inherit" edge="start" sx={{ mr: 2 }}>
-            <MenuIcon /> {/* You might want to add functionality to toggle drawer */}
+          <IconButton
+            color="inherit"
+            edge="start"
+            onClick={handleMobileDrawerToggle}
+            sx={{ mr: 2, display: { md: 'none' } }}
+          >
+            <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
-            BiruniWMS {user ? `- Hello, ${user.username}` : ''} {/* Use user prop, assuming username property */}
+            BiruniWMS
           </Typography>
-          {/* Removed the StarIcon, add back if needed */}
-          {/* <IconButton color="inherit">
-            <StarIcon />
-          </IconButton> */}
-           <IconButton color="inherit" onClick={onLogout} title="Logout">
-             <Logout />
-           </IconButton>
+          {user && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body1" noWrap>
+                Hi, {user.username}
+              </Typography>
+              <Avatar sx={{ width: 32, height: 32 }}>
+                {user.username?.charAt(0).toUpperCase()}
+              </Avatar>
+            </Box>
+          )}
         </Toolbar>
       </AppBar>
 
-      {/* Sidebar */}
+      {/* Desktop Drawer */}
       <Drawer
-        variant="permanent" // Consider making this responsive with a temporary variant on mobile
+        variant="permanent"
         sx={{
-          width: drawerWidth,
+          display: { xs: 'none', md: 'block' },
+          width: desktopOpen ? drawerWidth : collapsedDrawerWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: { // Use theme.breakpoints for responsiveness
-             width: drawerWidth,
-             boxSizing: 'border-box',
-             // Ensure drawer is below AppBar
-             marginTop: '64px', // Height of default AppBar
-             // You might need to adjust this based on your AppBar height
+          whiteSpace: 'nowrap',
+          [`& .MuiDrawer-paper`]: {
+            width: desktopOpen ? drawerWidth : collapsedDrawerWidth,
+            boxSizing: 'border-box',
+            transition: (theme) => theme.transitions.create('width', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
+            overflowX: 'hidden',
+          },
+        }}
+        open
+      >
+        {drawerContent}
+      </Drawer>
+
+      {/* Mobile Drawer */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleMobileDrawerToggle}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          [`& .MuiDrawer-paper`]: {
+            width: drawerWidth,
+            boxSizing: 'border-box',
           },
         }}
       >
-        {/* Removed Toolbar inside Drawer, marginTop handles the space */}
-        <Box sx={{ overflow: 'auto' }}>
-          <List>
-            {menuItems.map((item) => (
-              <ListItem button key={item.text} onClick={() => handleNavigation(item.path)}>
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItem>
-            ))}
-            {/* Logout button in the sidebar */}
-            {/* Moved logout to AppBar for clearer visibility, but can keep here too */}
-             {/* <ListItem button onClick={onLogout}>
-              <ListItemIcon><Logout /></ListItemIcon>
-              <ListItemText primary="Logout" />
-            </ListItem> */}
-          </List>
-        </Box>
+        {drawerContent}
       </Drawer>
 
-      {/* Main content area */}
+      {/* Main Content */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
-          bgcolor: '#f5f5f5', // Background color for content area
-          minHeight: '100vh', // Ensure it takes at least full viewport height
-          // Add padding/margin top to account for fixed AppBar
-          marginTop: '64px', // Height of default AppBar
+          width: { md: `calc(100% - ${desktopOpen ? drawerWidth : collapsedDrawerWidth}px)` },
+          mt: '64px',
+          bgcolor: '#f5f5f5',
+          minHeight: '100vh',
+          transition: (theme) =>
+            theme.transitions.create('margin', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.leavingScreen,
+            }),
         }}
       >
-        {/* Removed Toolbar here */}
+        {/* Breadcrumbs */}
+        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
+          <Link underline="hover" color="inherit" onClick={() => navigate('/dashboard')} sx={{ cursor: 'pointer' }}>
+            Home
+          </Link>
+          {pathnames.map((value, index) => {
+            const to = `/${pathnames.slice(0, index + 1).join('/')}`;
+            const isLast = index === pathnames.length - 1;
+            const menuItem = menuItems.find((item) => item.path === `/${value}`);
+            const name = menuItem ? menuItem.text : value.replace(/-/g, ' ');
 
-        {/* THIS IS THE FIX: RENDER THE MATCHED NESTED ROUTE CONTENT HERE */}
+            return isLast ? (
+              <Typography color="text.primary" key={to}>
+                {name}
+              </Typography>
+            ) : (
+              <Link
+                underline="hover"
+                color="inherit"
+                onClick={() => navigate(to)}
+                key={to}
+                sx={{ cursor: 'pointer' }}
+              >
+                {name}
+              </Link>
+            );
+          })}
+        </Breadcrumbs>
+
         <Outlet />
-
       </Box>
     </Box>
   );
