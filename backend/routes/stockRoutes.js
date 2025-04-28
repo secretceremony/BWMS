@@ -1,77 +1,33 @@
-// routes/stockRoutes.js
+// backend/src/routes/stockRoutes.js
 const express = require("express");
 const router = express.Router();
-const stockController = require("../controllers/stockController");
-// authMiddleware di-apply di server.js untuk seluruh path /api/stock
-const validateIdParam = require("../middleware/validateIdMiddleware"); // Import middleware validasi ID
+// Import semua fungsi controller stock
+const {
+    getAllStock,
+    getStockById,
+    createStock,
+    updateStock,
+    deleteStock
+} = require("../controllers/stockController");
+const authenticateToken = require("../middleware/authMiddleware"); // Import middleware autentikasi
 
-// Catatan: middleware authenticateToken sudah di-apply ke seluruh router ini di file server.js
-// Contoh: app.use('/api/stock', authenticateToken, stockRoutes);
+// --- Route untuk API Stock ---
+// Semua route ini memerlukan autentikasi
 
-// --- Stock Routes ---
+// GET semua stock (dengan filter, sort, search dari query params)
+router.get("/stock", authenticateToken, getAllStock);
 
-// @route   GET /api/stock
-// @desc    Get all stock items
-// @access  Private (Memerlukan JWT, validasi ID tidak diperlukan di sini)
-router.get("/",
-  // --- Log untuk debugging di sini ---
-  (req, res, next) => {
-    console.log(">>> DEBUG: --- Masuk GET /api/stock route (ambil semua) ---");
-    next(); // Lanjutkan ke controller
-  },
-  stockController.getAllStock // Controller untuk mengambil semua stok
-);
+// GET stock berdasarkan ID
+router.get("/stock/:id", authenticateToken, getStockById);
 
-// @route   POST /api/stock
-// @desc    Create a new stock item
-// @access  Private (Memerlukan JWT, validasi ID tidak diperlukan di sini karena ID dibuat backend)
-router.post("/",
-  // --- Log untuk debugging di sini ---
-  (req, res, next) => {
-    console.log(">>> DEBUG: --- Masuk POST /api/stock route (buat baru) ---");
-    next(); // Lanjutkan ke controller
-  },
-  stockController.createStockItem // Controller untuk membuat stok baru
-);
+// POST stock baru
+router.post("/stock", authenticateToken, createStock);
 
-// @route   GET /api/stock/:id
-// @desc    Get a single stock item by ID
-// @access  Private (Memerlukan JWT, validasi ID diperlukan)
-router.get("/:id",
-  // --- Log untuk debugging di sini ---
-  (req, res, next) => {
-    console.log(`>>> DEBUG: --- Masuk GET /api/stock/:id route (ambil by ID) untuk ID: ${req.params.id} ---`);
-    next(); // Lanjutkan ke middleware atau controller berikutnya
-  },
-  validateIdParam, // Middleware validasi ID
-  stockController.getStockItemById // Controller untuk mengambil stok berdasarkan ID
-);
+// PUT update stock berdasarkan ID
+router.put("/stock/:id", authenticateToken, updateStock);
 
-// @route   PATCH /api/stock/:id
-// @desc    Update a stock item by ID
-// @access  Private (Memerlukan JWT, validasi ID diperlukan)
-router.patch("/:id",
-  // --- Log untuk debugging di sini ---
-  (req, res, next) => {
-     console.log(`>>> DEBUG: --- Masuk PATCH /api/stock/:id route (update by ID) untuk ID: ${req.params.id} ---`);
-    next(); // Lanjutkan
-  },
-  validateIdParam, // Middleware validasi ID
-  stockController.updateStockItem // Controller untuk update stok
-);
-
-// @route   DELETE /api/stock/:id
-// @desc    Delete a stock item by ID
-// @access  Private (Memerlukan JWT, validasi ID diperlukan)
-router.delete("/:id",
-   // --- Log untuk debugging di sini ---
-  (req, res, next) => {
-    console.log(`>>> DEBUG: --- Masuk DELETE /api/stock/:id route (hapus by ID) untuk ID: ${req.params.id} ---`);
-    next(); // Lanjutkan
-  },
-  validateIdParam, // Middleware validasi ID
-  stockController.deleteStockItem // Controller untuk menghapus stok
-);
+// DELETE stock berdasarkan ID
+router.delete("/stock/:id", authenticateToken, deleteStock);
 
 
 module.exports = router;

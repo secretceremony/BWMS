@@ -1,195 +1,214 @@
-// controllers/stockController.js
-const pool = require("../db"); // Import your database connection pool
+// backend/src/controllers/stockController.js
+const pool = require("../db"); // Pastikan path benar ke db.js
 
-// Helper to map DB rows to camelCase objects
-const mapRowToCamelCase = (row) => {
-    if (!row) return null;
-    const camelCaseRow = {};
-    for (const key in row) {
-        camelCaseRow[toCamelCase(key)] = row[key];
-    }
-    return camelCaseRow;
+// Mengambil semua data stock dengan filter, sort, dan search
+const getAllStock = async (req, res) => {
+  // Ambil parameter dari query string
+  const { category, supplier, sort, q, status, uom } = req.query;
+
+  let query = 'SELECT id, name, part_number, category, quantity, supplier, status, uom, remarks FROM stock';
+  const queryParams = [];
+  const conditions = [];
+
+  // Tambahkan kondisi filtering
+  if (category) {
+    conditions.push(`category = $${queryParams.length + 1}`);
+    queryParams.push(category);
+  }
+  if (supplier) {
+    conditions.push(`supplier = $${queryParams.length + 1}`);
+    queryParams.push(supplier);
+  }
+   if (status) {
+    conditions.push(`status = $${queryParams.length + 1}`);
+    queryParams.push(status);
+  }
+   if (uom) {
+    conditions.push(`uom = $${queryParams.length + 1}`);
+    queryParams.push(uom);
+  }
+
+  // Tambahkan kondisi search (mencari di beberapa kolom)
+  if (q) {
+    const searchTerm = `%${q}%`;
+    // Sesuaikan kolom yang ingin dicari (name, id, part_number, remarks dll)
+    conditions.push(`(name ILIKE $${queryParams.length + 1} OR id::text ILIKE $${queryParams.length + 2} OR part_number ILIKE $${queryParams.length + 3} OR remarks ILIKE $${queryParams.length + 4})`);
+    queryParams.push(searchTerm, searchTerm, searchTerm, searchTerm); // Ulangi searchTerm sesuai jumlah kolom yang dicari
+  }
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
+
+  // Tambahkan sorting
+  let orderBy = '';
+  if (sort === 'stokTerbanyak') {
+    orderBy = 'quantity DESC';
+  } else if (sort === 'stokTerkecil') {
+    orderBy = 'quantity ASC';
+  }
+  // Tambahkan sort default jika tidak ada sort spesifik
+   else {
+      orderBy = 'id ASC'; // Default sort by ID ascending
+   }
+
+  if (orderBy) {
+      query += ` ORDER BY ${orderBy}`;
+  }
+
+
+  console.log("Executing stock query:", query, queryParams); // Debug query
+  try {
+    const result = await pool.query(query, queryParams);
+    // Mapping kolom quantity ke stock untuk kompatibilitas dengan frontend jika diperlukan,
+    // atau ubah frontend untuk menggunakan 'quantity'
+    const items = result.rows.map(row => ({
+        ...row,
+        stock: row.quantity // Mapping quantity ke stock untuk frontend
+    }));
+    res.json(items);
+  } catch (err) {
+    console.error('Error fetching stock:', err.message || err);
+    res.status(500).json({ error: 'Terjadi kesalahan server saat mengambil data stock' });
+  }
 };
 
-// @desc    Get all stock items
-// @route   GET /api/stock
-// @access  Private (Requires JWT)
-const getAllStock = async (req, res) => {
+// Mengambil data stock berdasarkan ID
+const getStockById = async (req, res) => {
+    const { id } = req.params;
     try {
-      // Select all columns, including created_at and updated_at if needed
-      const result = await pool.query('SELECT id, name, part_number, category, quantity, supplier, status, uom, remarks, created_at, updated_at FROM stock ORDER BY id ASC');
-
-      const stockItems = result.rows.map(mapRowToCamelCase);
-      res.status(200).json(stockItems);
-
-    } catch (error) {
-      console.error('Error fetching all stock:', error);
-      res.status(500).json({ error: 'Terjadi kesalahan saat mengambil data stok.' });
+        // Sesuaikan query dan kolom
+        const result = await pool.query('SELECT id, name, part_number, category, quantity, supplier, status, uom, remarks FROM stock WHERE id = $1', [id]);
+         if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Item stock tidak ditemukan' });
+        }
+         // Mapping kolom quantity ke stock
+        const item = {
+             ...result.rows[0],
+             stock: result.rows[0].quantity
+        };
+        res.json(item);
+    } catch (err) {
+        console.error('Error fetching stock by ID:', err.message || err);
+        res.status(500).json({ error: 'Terjadi kesalahan server saat mengambil data stock' });
     }
-  };
+};
 
-// @desc    Get a single stock item by ID
-// @route   GET /api/stock/:id
-// @access  Private (Requires JWT)
-const getStockItemById = async (req, res) => {
-    // ID is already validated and parsed to integer by validateIdParam middleware
-    const id = req.params.id;
-
-    try {
-      const result = await pool.query(
-        'SELECT id, name, part_number, category, quantity, supplier, status, uom, remarks, created_at, updated_at FROM stock WHERE id = $1',
-        [id]
-      );
-
-      if (result.rowCount === 0) {
-        // Item not found with this ID
-        return res.status(404).json({ error: 'Item stok tidak ditemukan.' });
-      }
-
-      const stockItem = mapRowToCamelCase(result.rows[0]);
-      res.status(200).json(stockItem);
-    } catch (error) {
-      console.error(`Error fetching stock item with ID ${id}:`, error);
-      res.status(500).json({ error: 'Terjadi kesalahan saat mengambil data stok.' });
-    }
-  };
-
-// @desc    Create a new stock item
-// @route   POST /api/stock
-// @access  Private (Requires JWT)
-const createStockItem = async (req, res) => {
-    // Destructure directly using database column names (snake_case) from req.body
+// Menambah data stock baru
+const createStock = async (req, res) => {
+    // Sesuaikan kolom dengan body request
     const { name, part_number, category, quantity, supplier, status, uom, remarks } = req.body;
 
-    // Basic validation (add more sophisticated validation library like 'express-validator' for production)
-    if (!name || !category || quantity === undefined || !supplier || !status || !uom) {
-        return res.status(400).json({ error: 'Harap lengkapi semua field wajib (name, category, quantity, supplier, status, uom).' });
-    }
-
-    // Ensure quantity is a non-negative number
-    if (typeof quantity !== 'number' || quantity < 0) {
-         return res.status(400).json({ error: 'Quantity harus berupa angka non-negatif.' });
-    }
-
-
     try {
-        // Insert into database, returning the newly created row
+        // Basic validation
+        if (!name || !part_number || !category || quantity === undefined || !supplier || !status || !uom) {
+            return res.status(400).json({ error: "Field yang dibutuhkan (name, part_number, category, quantity, supplier, status, uom) tidak lengkap." });
+        }
+
+        // Sesuaikan query INSERT dan kolom
         const result = await pool.query(
-            'INSERT INTO stock (name, part_number, category, quantity, supplier, status, uom, remarks) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name, part_number, category, quantity, supplier, status, uom, remarks, created_at, updated_at',
+            'INSERT INTO stock (name, part_number, category, quantity, supplier, status, uom, remarks) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name, part_number, category, quantity, supplier, status, uom, remarks',
             [name, part_number, category, quantity, supplier, status, uom, remarks]
         );
+        const newItem = result.rows[0];
 
-        // Map inserted row to camelCase for the response
-        const newItem = mapRowToCamelCase(result.rows[0]);
+         // Mapping kolom quantity ke stock untuk response
+        const responseItem = {
+            ...newItem,
+            stock: newItem.quantity
+        };
 
-        res.status(201).json(newItem); // 201 Created status
-    } catch (error) {
-        console.error('Error creating stock item:', error);
-         // Handle potential unique constraint errors if part_number is unique
-        if (error.code === '23505') { // PostgreSQL unique_violation error code
-             res.status(400).json({ error: `Part Number '${part_number}' sudah ada.` });
-        } else {
-            res.status(500).json({ error: 'Terjadi kesalahan saat membuat item stok baru.' });
+        res.status(201).json(responseItem); // 201 Created
+
+    } catch (err) {
+        console.error('Error creating stock:', err.message || err);
+        // Tangani error UNIQUE violation jika part_number harus unik
+        if (err.code === '23505') { // Kode error PostgreSQL untuk unique_violation
+             return res.status(409).json({ error: 'Part Number sudah ada.' });
         }
+        res.status(500).json({ error: 'Terjadi kesalahan server saat menambah data stock' });
     }
 };
 
-// @desc    Update a stock item by ID
-// @route   PATCH /api/stock/:id (PATCH is often better for partial updates)
-// @access  Private (Requires JWT)
-const updateStockItem = async (req, res) => {
-    // ID is already validated and parsed to integer by validateIdParam middleware
-    const id = req.params.id;
-     // Destructure potential updates using database column names (snake_case) from req.body
+// Mengupdate data stock yang ada
+const updateStock = async (req, res) => {
+    const { id } = req.params;
+    // Sesuaikan kolom dengan body request
     const { name, part_number, category, quantity, supplier, status, uom, remarks } = req.body;
 
-    // Build query dynamically to allow partial updates (using PATCH semantics)
-    const fields = [];
-    const values = [];
-    let queryIndex = 1; // Start parameter index
-
-    // Add fields and values only if they are provided in the request body
-    if (name !== undefined) { fields.push(`name = $${queryIndex++}`); values.push(name); }
-    if (part_number !== undefined) { fields.push(`part_number = $${queryIndex++}`); values.push(part_number); }
-    if (category !== undefined) { fields.push(`category = $${queryIndex++}`); values.push(category); }
-    if (quantity !== undefined) {
-        // Basic validation for quantity update
-        if (typeof quantity !== 'number' || quantity < 0) {
-            return res.status(400).json({ error: 'Quantity harus berupa angka non-negatif saat update.' });
+    try {
+         // Fetch item yang ada untuk validasi atau merge data
+        const existingItemResult = await pool.query('SELECT * FROM stock WHERE id = $1', [id]);
+        if (existingItemResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Item stock tidak ditemukan' });
         }
-        fields.push(`quantity = $${queryIndex++}`); values.push(quantity);
-    }
-    if (supplier !== undefined) { fields.push(`supplier = $${queryIndex++}`); values.push(supplier); }
-    if (status !== undefined) { fields.push(`status = $${queryIndex++}`); values.push(status); }
-    if (uom !== undefined) { fields.push(`uom = $${queryIndex++}`); values.push(uom); }
-    if (remarks !== undefined) { fields.push(`remarks = $${queryIndex++}`); values.push(remarks); }
+        const existingItem = existingItemResult.rows[0];
 
-    // If no fields to update, return bad request
-    if (fields.length === 0) {
-        return res.status(400).json({ error: 'Tidak ada field yang disediakan untuk diperbarui.' });
-    }
 
-    // Add the ID to the values and query condition. The ID parameter index is the last one.
-    values.push(id);
-    const updateQuery = `UPDATE stock SET ${fields.join(', ')}, updated_at = NOW() WHERE id = $${queryIndex} RETURNING id, name, part_number, category, quantity, supplier, status, uom, remarks, created_at, updated_at`;
+        // Gunakan nilai dari body atau nilai yang sudah ada jika tidak disediakan di body
+        const updatedName = name !== undefined ? name : existingItem.name;
+        const updatedPartNumber = part_number !== undefined ? part_number : existingItem.part_number;
+        const updatedCategory = category !== undefined ? category : existingItem.category;
+        const updatedQuantity = quantity !== undefined ? quantity : existingItem.quantity;
+        const updatedSupplier = supplier !== undefined ? supplier : existingItem.supplier;
+        const updatedStatus = status !== undefined ? status : existingItem.status;
+        const updatedUom = uom !== undefined ? uom : existingItem.uom;
+        const updatedRemarks = remarks !== undefined ? remarks : existingItem.remarks;
+
+
+        // Sesuaikan query UPDATE dan kolom
+        const result = await pool.query(
+            'UPDATE stock SET name = $1, part_number = $2, category = $3, quantity = $4, supplier = $5, status = $6, uom = $7, remarks = $8 WHERE id = $9 RETURNING id, name, part_number, category, quantity, supplier, status, uom, remarks',
+            [updatedName, updatedPartNumber, updatedCategory, updatedQuantity, updatedSupplier, updatedStatus, updatedUom, updatedRemarks, id]
+        );
+
+        const updatedItem = result.rows[0];
+
+        // Mapping kolom quantity ke stock untuk response
+        const responseItem = {
+            ...updatedItem,
+            stock: updatedItem.quantity
+        };
+
+        res.json(responseItem); // 200 OK
+
+    } catch (err) {
+        console.error('Error updating stock:', err.message || err);
+         if (err.code === '23505') { // Kode error PostgreSQL untuk unique_violation
+             return res.status(409).json({ error: 'Part Number sudah ada.' });
+        }
+        res.status(500).json({ error: 'Terjadi kesalahan server saat mengupdate data stock' });
+    }
+};
+
+// Menghapus data stock
+const deleteStock = async (req, res) => {
+    const { id } = req.params;
 
     try {
-        const result = await pool.query(updateQuery, values);
-
-        if (result.rowCount === 0) {
-            // Item not found with this ID
-            return res.status(404).json({ error: 'Item stok tidak ditemukan.' });
+        // Cek apakah item ada sebelum menghapus (opsional tapi baik)
+        const checkItem = await pool.query('SELECT id FROM stock WHERE id = $1', [id]);
+        if (checkItem.rows.length === 0) {
+            return res.status(404).json({ message: 'Item stock tidak ditemukan' });
         }
 
-        // Map updated row to camelCase for the response
-        const updatedItem = mapRowToCamelCase(result.rows[0]);
+        // Lakukan penghapusan
+        await pool.query('DELETE FROM stock WHERE id = $1', [id]);
 
-        res.status(200).json(updatedItem); // 200 OK status
-    } catch (error) {
-        console.error(`Error updating stock item with ID ${id}:`, error);
-         // Handle potential unique constraint errors if part_number is unique during update
-        if (error.code === '23505') { // PostgreSQL unique_violation error code
-             // Try to get the conflicting value from the error detail if available (PostgreSQL specific)
-             const detail = error.detail || '';
-             const partNumberMatch = detail.match(/Key \(part_number\)=\((.*?)\)/);
-             const conflictingPartNumber = partNumberMatch ? partNumberMatch[1] : 'yang sama';
-             res.status(400).json({ error: `Part Number '${conflictingPartNumber}' sudah ada.` });
-        } else {
-             res.status(500).json({ error: 'Terjadi kesalahan saat memperbarui item stok.' });
-        }
+        res.json({ message: 'Item stock berhasil dihapus' }); // 200 OK
+
+    } catch (err) {
+        console.error('Error deleting stock:', err.message || err);
+        res.status(500).json({ error: 'Terjadi kesalahan server saat menghapus data stock' });
     }
 };
 
 
-// @desc    Delete a stock item by ID
-// @route   DELETE /api/stock/:id
-// @access  Private (Requires JWT)
-const deleteStockItem = async (req, res) => {
-    // ID is already validated and parsed to integer by validateIdParam middleware
-    const id = req.params.id;
-
-    try {
-        // Delete the row, returning the ID of the deleted row
-        const result = await pool.query('DELETE FROM stock WHERE id = $1 RETURNING id', [id]);
-
-        if (result.rowCount === 0) {
-            // Item not found with this ID
-            return res.status(404).json({ error: 'Item stok tidak ditemukan.' });
-        }
-
-        // Respond with success message and the ID of the deleted item
-        res.status(200).json({ message: `Item stok dengan ID ${result.rows[0].id} berhasil dihapus.` }); // 200 OK status
-    } catch (error) {
-        console.error(`Error deleting stock item with ID ${id}:`, error);
-        res.status(500).json({ error: 'Terjadi kesalahan saat menghapus item stok.' });
-    }
-};
-
-
+// Export semua fungsi controller stock
 module.exports = {
   getAllStock,
-  getStockItemById,
-  createStockItem,
-  updateStockItem,
-  deleteStockItem,
+  getStockById,
+  createStock,
+  updateStock,
+  deleteStock,
 };

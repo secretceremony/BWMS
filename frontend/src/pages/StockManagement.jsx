@@ -1,12 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
   Card,
   IconButton,
-  InputBase,
-  MenuItem,
-  Select,
   Stack,
   Table,
   TableBody,
@@ -16,176 +13,239 @@ import {
   TableRow,
   Typography,
   Paper,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  // Hapus import Dialog, DialogTitle, DialogContent, DialogActions
+  // Dialog,
+  // DialogTitle,
+  // DialogContent,
+  // DialogActions,
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
-const initialItems = [
-  { id: '001', name: 'Item A', category: 'Electronics', price: 1500000, stock: 10, supplier: 'Supplier A', status: 'Available' },
-  { id: '002', name: 'Item B', category: 'Furniture', price: 750000, stock: 5, supplier: 'Supplier B', status: 'Out of Stock' },
-  { id: '003', name: 'Item C', category: 'Apparel', price: 250000, stock: 20, supplier: 'Supplier C', status: 'Available' },
-];
+// Import komponen filter, sort, search
+import SearchInput from '../components/SearchInput'; // Sesuaikan path
+import StockFiltersAndSortControls from '../components/StockFiltersAndSortControls'; // Sesuaikan path
+// Import komponen modal delete yang baru
+import DeleteConfirmationDialog from '../components/DeleteConfirmationDialog'; // Sesuaikan path
+
+
+// Ambil URL Backend dari environment variable
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
+// Helper untuk membangun query string
+const buildQueryString = (filters) => {
+    const params = new URLSearchParams();
+    if (filters.filterCategory) params.append('category', filters.filterCategory);
+    if (filters.filterSupplier) params.append('supplier', filters.filterSupplier);
+    if (filters.sortOrder) params.append('sort', filters.sortOrder);
+    if (filters.searchQuery) params.append('q', filters.searchQuery);
+    return params.toString();
+};
+
+// Helper untuk mendapatkan token autentikasi
+const getAuthToken = () => {
+    return localStorage.getItem('token'); // Sesuaikan dengan implementasi Anda
+};
+
 
 const StockManagement = () => {
-  const [items, setItems] = useState(initialItems);
+  // State data dan loading utama
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // State filter, sort, search
   const [filterCategory, setFilterCategory] = useState('');
   const [filterSupplier, setFilterSupplier] = useState('');
   const [sortOrder, setSortOrder] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // State untuk modal konfirmasi delete
   const [openConfirm, setOpenConfirm] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState(null);
+  // State untuk loading dan error khusus proses delete
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
 
-  const handleDeleteClick = (id) => {
-    setSelectedItemId(id);
-    setOpenConfirm(true);
+
+  // --- Logika Fetch Data dari Backend ---
+  const fetchItems = async () => {
+    setLoading(true);
+    setError(null); // Reset error utama
+
+    const queryString = buildQueryString({
+        filterCategory,
+        filterSupplier,
+        sortOrder,
+        searchQuery
+    });
+
+    const token = getAuthToken();
+    if (!token) {
+        setError("Authentication token not found. Please log in.");
+        setLoading(false);
+        // Mungkin arahkan ke halaman login
+        return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/stock?${queryString}`, {
+           headers: {
+               'Authorization': `Bearer ${token}`,
+               'Content-Type': 'application/json'
+           }
+      });
+
+      if (!response.ok) {
+           if (response.status === 401 || response.status === 403) {
+               setError("Authentication error: Please login again.");
+           } else {
+               setError(`Failed to fetch items: ${response.statusText}`);
+           }
+           throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setItems(data);
+
+    } catch (error) {
+      console.error("Fetching items failed:", error);
+       if (!error.message.includes('HTTP error')) {
+           setError("Failed to load items. Network error or server issue.");
+       }
+
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleConfirmDelete = () => {
-    setItems((prevItems) => prevItems.filter(item => item.id !== selectedItemId));
-    setOpenConfirm(false);
-    setSelectedItemId(null);
+  // Effect dijalankan saat komponen pertama kali render dan saat filter/sort/search berubah
+  useEffect(() => {
+    fetchItems();
+  }, [filterCategory, filterSupplier, sortOrder, searchQuery]);
+
+
+  // --- Handler untuk Modal Delete dan Aksi Delete ---
+
+  const handleDeleteClick = (id) => {
+      setSelectedItemId(id);
+      setDeleteError(null); // Reset delete error sebelum membuka modal
+      setOpenConfirm(true);
   };
 
   const handleCancelDelete = () => {
-    setOpenConfirm(false);
-    setSelectedItemId(null);
+      setOpenConfirm(false);
+      setSelectedItemId(null);
+      setDeleteError(null); // Pastikan error juga direset saat batal
   };
 
+  const handleConfirmDelete = async () => {
+      setDeleteLoading(true); // Set loading saat memulai proses delete
+      setDeleteError(null); // Reset error
+
+      const token = getAuthToken();
+      if (!token) {
+          setDeleteError("Authentication token missing. Cannot delete.");
+          setDeleteLoading(false);
+          // Mungkin arahkan ke login atau tampilkan pesan error umum
+          return;
+      }
+
+      try {
+          const response = await fetch(`${API_URL}/api/stock/${selectedItemId}`, {
+              method: 'DELETE',
+              headers: {
+                 'Authorization': `Bearer ${token}`,
+                 'Content-Type': 'application/json'
+              }
+          });
+
+          if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.message || errorData.error || response.statusText); // Ambil pesan error dari backend
+          }
+
+          // Jika berhasil, fetch ulang data
+          fetchItems();
+
+          // Tutup modal setelah berhasil
+          setOpenConfirm(false);
+          setSelectedItemId(null);
+
+      } catch (error) {
+          console.error("Deleting item failed:", error);
+          // Tampilkan pesan error di dalam modal delete
+          setDeleteError(`Gagal menghapus: ${error.message}`);
+           // Jangan tutup modal otomatis agar user bisa lihat error
+          // setOpenConfirm(false);
+          // setSelectedItemId(null); // Keep selectedItemId to show in modal
+      } finally {
+          setDeleteLoading(false); // Selesai loading
+      }
+  };
+
+
+  // --- Handler untuk Aksi Lain (Edit, Add, In/Out) ---
   const handleEdit = (id) => {
     console.log('Edit item with ID:', id);
+    // TODO: Implementasi Edit (membutuhkan form/modal edit dan panggilan API PUT)
   };
 
-  const handleSearchChange = (event) => {
-    setSearchQuery(event.target.value);
-  };
+  const handleAddItem = () => {
+       console.log('Add Item clicked');
+       // TODO: Implementasi Add (membutuhkan form/modal add dan panggilan API POST)
+    };
 
-  const handleFilterCategoryChange = (event) => {
-    setFilterCategory(event.target.value);
-  };
+    const handleIncomingGoods = () => {
+        console.log('Incoming Goods clicked');
+    };
 
-  const handleFilterSupplierChange = (event) => {
-    setFilterSupplier(event.target.value);
-  };
+    const handleOutgoingGoods = () => {
+        console.log('Outgoing Goods clicked');
+    };
 
-  const handleSortOrderChange = (event) => {
-    setSortOrder(event.target.value);
-  };
 
-  let filteredItems = items.filter(item => {
-    const matchesCategory = filterCategory === '' || item.category === filterCategory;
-    const matchesSupplier = filterSupplier === '' || item.supplier === filterSupplier;
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.id.includes(searchQuery);
-    return matchesCategory && matchesSupplier && matchesSearch;
-  });
+  // Handlers untuk filter, sort, dan search - hanya update state
+  const handleSearchChange = (event) => { setSearchQuery(event.target.value); };
+  const handleFilterCategoryChange = (event) => { setFilterCategory(event.target.value); };
+  const handleFilterSupplierChange = (event) => { setFilterSupplier(event.target.value); };
+  const handleSortOrderChange = (event) => { setSortOrder(event.target.value); };
 
-  if (sortOrder === 'stokTerbanyak') {
-    filteredItems.sort((a, b) => b.stock - a.stock);
-  } else if (sortOrder === 'stokTerkecil') {
-    filteredItems.sort((a, b) => a.stock - b.stock);
+
+  // --- Tampilan Komponen ---
+
+  // Tampilkan loading atau error state utama
+  if (loading) {
+      return <Box sx={{ p: 4, textAlign: 'center' }}><Typography>Loading Stock Data...</Typography></Box>;
   }
+
+  if (error) {
+      return <Box sx={{ p: 4, textAlign: 'center' }}><Typography color="error">Error: {error}</Typography></Box>;
+  }
+
 
   return (
     <Box sx={{ p: 4 }}>
       {/* Top Buttons */}
       <Stack direction="row" spacing={2} mb={2} flexWrap="wrap">
-        <Button variant="contained" size="small" color="primary">Add Item</Button>
-        <Button variant="contained" size="small" color="primary">Incoming Goods</Button>
-        <Button variant="contained" size="small" color="primary">Outgoing Goods</Button>
+        <Button variant="contained" size="small" color="primary" onClick={handleAddItem} >Add Item</Button>
+        <Button variant="contained" size="small" color="primary" onClick={handleIncomingGoods} >Incoming Goods</Button>
+        <Button variant="contained" size="small" color="primary" onClick={handleOutgoingGoods} >Outgoing Goods</Button>
       </Stack>
 
-      {/* Filters and Search */}
+      {/* Filters, Sort, and Search */}
       <Stack direction="row" spacing={2} justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap">
-        <Stack direction="row" spacing={2} flexWrap="wrap">
-          {/* Filter Category */}
-          <Select
-            displayEmpty
-            value={filterCategory}
-            onChange={handleFilterCategoryChange}
-            size="small"
-            sx={{
-              bgcolor: 'white',
-              px: 2,
-              py: 1,
-              border: '1px solid',
-              borderColor: 'grey.400',
-              borderRadius: 1,
-              minWidth: 150,
-            }}
-          >
-            <MenuItem value="">
-              <em>Filter by Category</em>
-            </MenuItem>
-            <MenuItem value="Electronics">Electronics</MenuItem>
-            <MenuItem value="Furniture">Furniture</MenuItem>
-            <MenuItem value="Apparel">Apparel</MenuItem>
-          </Select>
-
-          {/* Filter Supplier */}
-          <Select
-            displayEmpty
-            value={filterSupplier}
-            onChange={handleFilterSupplierChange}
-            size="small"
-            sx={{
-              bgcolor: 'white',
-              px: 2,
-              py: 1,
-              border: '1px solid',
-              borderColor: 'grey.400',
-              borderRadius: 1,
-              minWidth: 150,
-            }}
-          >
-            <MenuItem value="">
-              <em>Filter by Supplier</em>
-            </MenuItem>
-            <MenuItem value="Supplier A">Supplier A</MenuItem>
-            <MenuItem value="Supplier B">Supplier B</MenuItem>
-            <MenuItem value="Supplier C">Supplier C</MenuItem>
-          </Select>
-
-          {/* Sort */}
-          <Select
-            displayEmpty
-            value={sortOrder}
-            onChange={handleSortOrderChange}
-            size="small"
-            sx={{
-              bgcolor: 'white',
-              px: 2,
-              py: 1,
-              border: '1px solid',
-              borderColor: 'grey.400',
-              borderRadius: 1,
-              minWidth: 150,
-            }}
-          >
-            <MenuItem value="">
-              <em>Sort by Stock</em>
-            </MenuItem>
-            <MenuItem value="stokTerbanyak">Stok Terbanyak</MenuItem>
-            <MenuItem value="stokTerkecil">Stok Terkecil</MenuItem>
-          </Select>
-        </Stack>
-
-        {/* Search */}
-        <InputBase
+        <StockFiltersAndSortControls
+          filterCategory={filterCategory}
+          onFilterCategoryChange={handleFilterCategoryChange}
+          filterSupplier={filterSupplier}
+          onFilterSupplierChange={handleFilterSupplierChange}
+          sortOrder={sortOrder}
+          onSortOrderChange={handleSortOrderChange}
+        />
+        <SearchInput
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
           placeholder="Search by ID or Name..."
-          value={searchQuery}
-          onChange={handleSearchChange}
-          size="small"
-          sx={{
-            bgcolor: 'white',
-            px: 2,
-            py: 1,
-            border: '1px solid',
-            borderColor: 'grey.400',
-            borderRadius: 1,
-            minWidth: 250,
-          }}
         />
       </Stack>
 
@@ -202,76 +262,74 @@ const StockManagement = () => {
                 <TableCell>Stock</TableCell>
                 <TableCell>Supplier</TableCell>
                 <TableCell>Status</TableCell>
+                 <TableCell>UoM</TableCell>
+                 <TableCell>Remarks</TableCell>
                 <TableCell align="center">Action</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredItems.map((item) => (
-                <TableRow key={item.id} hover>
-                  <TableCell>{item.id}</TableCell>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.category}</TableCell>
-                  <TableCell>Rp {item.price.toLocaleString('id-ID')}</TableCell>
-                  <TableCell>{item.stock}</TableCell>
-                  <TableCell>{item.supplier}</TableCell>
-                  <TableCell>
-                    <Typography
-                      sx={{
-                        px: 2,
-                        py: 0.5,
-                        borderRadius: 999,
-                        display: 'inline-block',
-                        bgcolor: item.status === 'Available' ? 'success.light' : 'error.light',
-                        color: item.status === 'Available' ? 'success.contrastText' : 'error.contrastText',
-                        fontSize: '0.8rem',
-                      }}
-                    >
-                      {item.status}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Stack direction="row" spacing={1} justifyContent="center">
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={() => handleEdit(item.id)}
+              {items.length > 0 ? (
+                items.map((item) => (
+                  <TableRow key={item.id} hover>
+                    <TableCell>{item.id}</TableCell>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>{item.category}</TableCell>
+                    <TableCell>{item.price ? `Rp ${item.price.toLocaleString('id-ID')}` : 'N/A'}</TableCell>
+                    <TableCell>{item.stock !== undefined ? item.stock : 'N/A'}</TableCell> {/* Gunakan item.stock */}
+                    <TableCell>{item.supplier}</TableCell>
+                    <TableCell>
+                      <Typography
+                        sx={{
+                          px: 2, py: 0.5, borderRadius: 999, display: 'inline-block',
+                          bgcolor: item.status === 'Available' ? 'success.light' : 'error.light',
+                          color: item.status === 'Available' ? 'success.contrastText' : 'error.contrastText',
+                          fontSize: '0.8rem',
+                        }}
                       >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleDeleteClick(item.id)}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredItems.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    No items found matching the criteria.
-                  </TableCell>
-                </TableRow>
-              )}
+                        {item.status}
+                      </Typography>
+                    </TableCell>
+                     <TableCell>{item.uom || 'N/A'}</TableCell>
+                     <TableCell>{item.remarks || 'N/A'}</TableCell>
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={1} justifyContent="center">
+                        <IconButton
+                          size="small" color="primary"
+                          onClick={() => handleEdit(item.id)}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small" color="error"
+                          onClick={() => handleDeleteClick(item.id)} // Membuka modal delete
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                 <TableRow>
+                   <TableCell colSpan={10} align="center">
+                     No items found matching the criteria.
+                   </TableCell>
+                 </TableRow>
+               )}
             </TableBody>
           </Table>
         </TableContainer>
       </Card>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={openConfirm} onClose={handleCancelDelete}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <Typography>Are you sure you want to delete this item?</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelDelete}>Cancel</Button>
-          <Button onClick={handleConfirmDelete} color="error" variant="contained">Delete</Button>
-        </DialogActions>
-      </Dialog>
+      {/* Render komponen Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={openConfirm} // Dikontrol oleh state openConfirm
+        onClose={handleCancelDelete} // Handler untuk menutup modal
+        onConfirm={handleConfirmDelete} // Handler saat konfirmasi delete
+        itemId={selectedItemId} // Pass ID item yang dipilih
+        loading={deleteLoading} // Pass state loading delete
+        error={deleteError} // Pass state error delete
+      />
     </Box>
   );
 };

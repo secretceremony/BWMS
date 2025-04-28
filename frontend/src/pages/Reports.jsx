@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
   Card,
-  InputBase,
+  // InputBase, // Hapus import InputBase jika sudah tidak dipakai langsung
   Stack,
   Table,
   TableBody,
@@ -17,6 +17,8 @@ import {
   Divider,
 } from '@mui/material';
 import { ArrowBack, ArrowForward, Edit, Delete } from '@mui/icons-material';
+// Import komponen SearchInput yang reusable
+import SearchInput from '../components/SearchInput'; // Sesuaikan path
 
 const reports = [
   { id: '001', jenis: 'Stock In', tanggal: '2025-04-01' },
@@ -25,6 +27,24 @@ const reports = [
 ];
 
 const Report = () => {
+  // State untuk search query tetap di komponen induk
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Handler untuk update state (dipanggil dari komponen anak)
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value);
+  };
+
+  // Logika Filtering tetap di komponen induk
+  const filteredReports = reports.filter(report => {
+    const query = searchQuery.toLowerCase();
+    return (
+      report.id.toLowerCase().includes(query) ||
+      report.jenis.toLowerCase().includes(query) ||
+      report.tanggal.includes(query)
+    );
+  });
+
   return (
     <Box sx={{ p: 4 }}>
       {/* Cards */}
@@ -46,25 +66,20 @@ const Report = () => {
         alignItems="center"
         justifyContent="space-between"
         mb={2}
+         flexWrap="wrap" // Tambahkan ini agar responsif di layar kecil
       >
         <Button variant="contained" size="small">
           Add Report
         </Button>
-        <InputBase
-          placeholder="Search report..."
-          sx={{
-            bgcolor: 'white',
-            px: 2,
-            py: 0.5,
-            border: '1px solid',
-            borderColor: 'grey.400',
-            borderRadius: 2,
-            minWidth: { xs: '100%', sm: 250 },
-          }}
+        {/* Gunakan komponen SearchInput */}
+        <SearchInput
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          placeholder="Search report..." // Berikan placeholder spesifik
         />
       </Stack>
 
-      {/* Table */}
+      {/* Table - menggunakan filteredReports dari state di induk */}
       <Card>
         <TableContainer component={Paper}>
           <Table>
@@ -77,7 +92,7 @@ const Report = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {reports.map((report) => (
+              {filteredReports.map((report) => (
                 <TableRow key={report.id} hover>
                   <TableCell>{report.id}</TableCell>
                   <TableCell>{report.jenis}</TableCell>
@@ -94,6 +109,13 @@ const Report = () => {
                   </TableCell>
                 </TableRow>
               ))}
+               {filteredReports.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} align="center">
+                    No reports found matching the criteria.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </TableContainer>
