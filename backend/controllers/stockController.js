@@ -31,9 +31,10 @@ const getAllStock = async (req, res) => {
   // Tambahkan kondisi search (mencari di beberapa kolom)
   if (q) {
     const searchTerm = `%${q}%`;
-    // Sesuaikan kolom yang ingin dicari (name, id, part_number, remarks dll)
-    conditions.push(`(name ILIKE $${queryParams.length + 1} OR id::text ILIKE $${queryParams.length + 2} OR part_number ILIKE $${queryParams.length + 3} OR remarks ILIKE $${queryParams.length + 4})`);
-    queryParams.push(searchTerm, searchTerm, searchTerm, searchTerm); // Ulangi searchTerm sesuai jumlah kolom yang dicari
+    // SESUAIKAN KOLOM PENCARIAN DAN TAMBAHKAN ::text PADA KOLOM NUMERIK
+    conditions.push(`(name ILIKE $${queryParams.length + 1} OR id::text ILIKE $${queryParams.length + 2} OR part_number::text ILIKE $${queryParams.length + 3} OR remarks ILIKE $${queryParams.length + 4})`);
+    // Pastikan jumlah parameter (sebanyak searchTerm di push) sesuai dengan jumlah placeholder $ di atas
+    queryParams.push(searchTerm, searchTerm, searchTerm, searchTerm);
   }
 
   if (conditions.length > 0) {
@@ -60,11 +61,10 @@ const getAllStock = async (req, res) => {
   console.log("Executing stock query:", query, queryParams); // Debug query
   try {
     const result = await pool.query(query, queryParams);
-    // Mapping kolom quantity ke stock untuk kompatibilitas dengan frontend jika diperlukan,
-    // atau ubah frontend untuk menggunakan 'quantity'
+    // Mapping kolom quantity ke stock untuk kompatibilitas frontend
     const items = result.rows.map(row => ({
         ...row,
-        stock: row.quantity // Mapping quantity ke stock untuk frontend
+        stock: row.quantity // Mapping quantity ke stock
     }));
     res.json(items);
   } catch (err) {
@@ -101,7 +101,7 @@ const createStock = async (req, res) => {
 
     try {
         // Basic validation
-        if (!name || !part_number || !category || quantity === undefined || !supplier || !status || !uom) {
+        if (!name || part_number === undefined || part_number === null || !category || quantity === undefined || quantity === null || !supplier || !status || !uom) { // Added check for undefined/null for numeric types
             return res.status(400).json({ error: "Field yang dibutuhkan (name, part_number, category, quantity, supplier, status, uom) tidak lengkap." });
         }
 

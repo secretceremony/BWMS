@@ -1,16 +1,27 @@
-// src/components/StockFiltersAndSortControls.js (Sesuaikan path jika perlu)
+// src/components/StockFiltersAndSortControls.js
 import React from 'react';
-import { Select, MenuItem, Stack } from '@mui/material';
+import { Select, MenuItem, Stack, FormControl, InputLabel } from '@mui/material';
+
+// Opsi filter Category dan Supplier sekarang tidak pakai array di sini karena jadi text input
+// Opsi Sort
+const sortOptions = [
+    { value: 'stokTerbanyak', label: 'Stok Terbanyak' },
+    { value: 'stokTerkecil', label: 'Stok Terkecil' },
+    // Anda bisa tambahkan opsi sort lain berdasarkan kolom lain di sini
+    // { value: 'nameAsc', label: 'Nama (A-Z)' },
+    // { value: 'nameDesc', label: 'Nama (Z-A)' },
+];
+
 
 const StockFiltersAndSortControls = ({
-  filterCategory,
+  filterCategory, // Sekarang string
   onFilterCategoryChange,
-  filterSupplier,
+  filterSupplier, // Sekarang string
   onFilterSupplierChange,
   sortOrder,
   onSortOrderChange,
+  // Jika ada filter status/uom di sini (bukan di form), sesuaikan props
 }) => {
-  // Styles umum untuk input kontrol
   const controlStyles = {
     bgcolor: 'white',
     px: 2,
@@ -21,54 +32,64 @@ const StockFiltersAndSortControls = ({
   };
 
   return (
-    // Stack ini berisi filter Category, Supplier, dan Sort Stock
     <Stack direction="row" spacing={2} flexWrap="wrap">
-      {/* Filter Category */}
-      <Select
-        displayEmpty
-        value={filterCategory}
-        onChange={onFilterCategoryChange}
-        size="small"
-        sx={{ ...controlStyles, minWidth: 150 }}
-      >
-        <MenuItem value="">
-          <em>Filter by Category</em>
-        </MenuItem>
-        <MenuItem value="Electronics">Electronics</MenuItem>
-        <MenuItem value="Furniture">Furniture</MenuItem>
-        <MenuItem value="Apparel">Apparel</MenuItem>
-      </Select>
+      {/* Filter Category (sekarang Select jika Anda ingin dropdown opsi di sini) */}
+      {/* Mengembalikan ke Select berdasarkan diskusi sebelumnya */}
+       <FormControl size="small" sx={{ ...controlStyles, minWidth: 150 }}>
+           <InputLabel shrink>Category</InputLabel>
+           <Select
+             displayEmpty
+             value={filterCategory}
+             onChange={onFilterCategoryChange}
+             label="Category"
+             inputProps={{ 'aria-label': 'Filter by Category' }}
+           >
+             <MenuItem value=""><em>Filter by Category</em></MenuItem>
+             {/* Opsi hardcode atau ambil dari API */}
+             <MenuItem value="Electronics">Electronics</MenuItem>
+             <MenuItem value="Furniture">Furniture</MenuItem>
+             <MenuItem value="Apparel">Apparel</MenuItem>
+              <MenuItem value="Others">Others</MenuItem>
+           </Select>
+       </FormControl>
 
-      {/* Filter Supplier */}
-      <Select
-        displayEmpty
-        value={filterSupplier}
-        onChange={onFilterSupplierChange}
-        size="small"
-        sx={{ ...controlStyles, minWidth: 150 }}
-      >
-        <MenuItem value="">
-          <em>Filter by Supplier</em>
-        </MenuItem>
-        <MenuItem value="Supplier A">Supplier A</MenuItem>
-        <MenuItem value="Supplier B">Supplier B</MenuItem>
-        <MenuItem value="Supplier C">Supplier C</MenuItem>
-      </Select>
+
+      {/* Filter Supplier (mengembalikan ke Select) */}
+       <FormControl size="small" sx={{ ...controlStyles, minWidth: 150 }}>
+           <InputLabel shrink>Supplier</InputLabel>
+           <Select
+             displayEmpty
+             value={filterSupplier}
+             onChange={onFilterSupplierChange}
+             label="Supplier"
+              inputProps={{ 'aria-label': 'Filter by Supplier' }}
+           >
+             <MenuItem value=""><em>Filter by Supplier</em></MenuItem>
+             {/* Opsi hardcode atau ambil dari API */}
+             <MenuItem value="Supplier A">Supplier A</MenuItem>
+             <MenuItem value="Supplier B">Supplier B</MenuItem>
+             <MenuItem value="Supplier C">Supplier C</MenuItem>
+              <MenuItem value="Supplier D">Supplier D</MenuItem>
+           </Select>
+       </FormControl>
+
 
       {/* Sort */}
-      <Select
-        displayEmpty
-        value={sortOrder}
-        onChange={onSortOrderChange}
-        size="small"
-        sx={{ ...controlStyles, minWidth: 150 }}
-      >
-        <MenuItem value="">
-          <em>Sort by Stock</em>
-        </MenuItem>
-        <MenuItem value="stokTerbanyak">Stok Terbanyak</MenuItem>
-        <MenuItem value="stokTerkecil">Stok Terkecil</MenuItem>
-      </Select>
+      <FormControl size="small" sx={{ ...controlStyles, minWidth: 150 }}>
+          <InputLabel shrink>Sort</InputLabel>
+          <Select
+            displayEmpty
+            value={sortOrder}
+            onChange={onSortOrderChange}
+            label="Sort"
+             inputProps={{ 'aria-label': 'Sort by Stock' }}
+          >
+            <MenuItem value=""><em>Sort by Stock</em></MenuItem>
+            {sortOptions.map(option => (
+                 <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+            ))}
+          </Select>
+      </FormControl>
     </Stack>
   );
 };

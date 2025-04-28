@@ -6,7 +6,7 @@ const SearchInput = ({ searchQuery, onSearchChange, placeholder = "Search..." })
   const searchStyles = {
     bgcolor: 'white',
     px: 2,
-    py: 0.5, // Menggunakan padding yang lebih umum atau disesuaikan
+    py: 0.5,
     border: '1px solid',
     borderColor: 'grey.400',
     borderRadius: 2,
@@ -15,10 +15,10 @@ const SearchInput = ({ searchQuery, onSearchChange, placeholder = "Search..." })
 
   return (
     <InputBase
-      placeholder={placeholder} // Placeholder bisa di-override dari parent
+      placeholder={placeholder}
       value={searchQuery}
       onChange={onSearchChange}
-      size="small" // Ukuran kecil agar konsisten
+      size="small"
       sx={searchStyles}
     />
   );

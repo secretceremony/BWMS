@@ -13,37 +13,38 @@ import {
   TableRow,
   Typography,
   Paper,
-  // Hapus import Dialog, DialogTitle, DialogContent, DialogActions
-  // Dialog,
-  // DialogTitle,
-  // DialogContent,
-  // DialogActions,
+  // Hapus import Dialog, DialogTitle, DialogContent, DialogActions jika hanya dipakai di modal terpisah
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
 // Import komponen filter, sort, search
-import SearchInput from '../components/SearchInput'; // Sesuaikan path
-import StockFiltersAndSortControls from '../components/StockFiltersAndSortControls'; // Sesuaikan path
-// Import komponen modal delete yang baru
-import DeleteConfirmationDialog from '../components/DeleteConfirmationDialog'; // Sesuaikan path
+import SearchInput from '../components/SearchInput';
+import StockFiltersAndSortControls from '../components/StockFiltersAndSortControls';
+// Import komponen modal delete dan form yang baru
+import DeleteConfirmationDialog from '../components/DeleteConfirmationDialog';
+import StockForm from '../components/StockForm'; // Import komponen form
 
 
 // Ambil URL Backend dari environment variable
+// Pastikan nama variabel environment sesuai dengan build tool Anda (misal: VITE_API_BASE_URL untuk Vite)
 const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
 
 // Helper untuk membangun query string
 const buildQueryString = (filters) => {
     const params = new URLSearchParams();
     if (filters.filterCategory) params.append('category', filters.filterCategory);
-    if (filters.filterSupplier) params.append('supplier', filters.filterSupplier);
+    if (filters.filterSupplier) params.append('supplier', filters.supplier); // Perbaiki ini? Sebelumnya filterSupplier? Sesuaikan nama prop
     if (filters.sortOrder) params.append('sort', filters.sortOrder);
     if (filters.searchQuery) params.append('q', filters.searchQuery);
+    // Tambahkan filter lain jika ada
     return params.toString();
 };
 
 // Helper untuk mendapatkan token autentikasi
 const getAuthToken = () => {
-    return localStorage.getItem('token'); // Sesuaikan dengan implementasi Anda
+    // Ganti ini dengan cara Anda menyimpan dan mendapatkan token setelah login
+    return localStorage.getItem('token');
 };
 
 
@@ -55,16 +56,21 @@ const StockManagement = () => {
 
   // State filter, sort, search
   const [filterCategory, setFilterCategory] = useState('');
-  const [filterSupplier, setFilterSupplier] = useState('');
+  const [filterSupplier, setFilterSupplier] = useState(''); // Perbaiki nama state jika perlu
   const [sortOrder, setSortOrder] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
   // State untuk modal konfirmasi delete
   const [openConfirm, setOpenConfirm] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState(null);
-  // State untuk loading dan error khusus proses delete
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+
+  // State untuk modal form Tambah/Edit
+  const [openForm, setOpenForm] = useState(false);
+  const [itemToEdit, setItemToEdit] = useState(null); // null = mode tambah, object = mode edit
+  const [saveLoading, setSaveLoading] = useState(false); // Loading saat simpan form
+  const [saveError, setSaveError] = useState(null); // Error saat simpan form
 
 
   // --- Logika Fetch Data dari Backend ---
@@ -72,12 +78,14 @@ const StockManagement = () => {
     setLoading(true);
     setError(null); // Reset error utama
 
+    // Pastikan nama state yang dilewatkan ke buildQueryString sesuai
     const queryString = buildQueryString({
-        filterCategory,
-        filterSupplier,
-        sortOrder,
-        searchQuery
+        filterCategory: filterCategory,
+        filterSupplier: filterSupplier, // Pastikan nama ini cocok
+        sortOrder: sortOrder,
+        searchQuery: searchQuery
     });
+
 
     const token = getAuthToken();
     if (!token) {
@@ -91,21 +99,26 @@ const StockManagement = () => {
       const response = await fetch(`${API_URL}/api/stock?${queryString}`, {
            headers: {
                'Authorization': `Bearer ${token}`,
-               'Content-Type': 'application/json'
+               'Content-Type': 'application/json' // Meskipun GET, header ini sering disertakan
            }
       });
 
       if (!response.ok) {
            if (response.status === 401 || response.status === 403) {
                setError("Authentication error: Please login again.");
+               // Opsional: Hapus token dan redirect
+               // localStorage.removeItem('token');
+               // window.location.href = '/login';
            } else {
-               setError(`Failed to fetch items: ${response.statusText}`);
+               // Coba ambil pesan error dari body jika ada
+               const errorBody = await response.json().catch(() => ({})); // Catch error if body is not JSON
+               setError(`Failed to fetch items: ${errorBody.error || response.statusText}`);
            }
            throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      setItems(data);
+      setItems(data); // Asumsi data dari backend sudah dimapping quantity -> stock
 
     } catch (error) {
       console.error("Fetching items failed:", error);
@@ -125,7 +138,6 @@ const StockManagement = () => {
 
 
   // --- Handler untuk Modal Delete dan Aksi Delete ---
-
   const handleDeleteClick = (id) => {
       setSelectedItemId(id);
       setDeleteError(null); // Reset delete error sebelum membuka modal
@@ -146,7 +158,6 @@ const StockManagement = () => {
       if (!token) {
           setDeleteError("Authentication token missing. Cannot delete.");
           setDeleteLoading(false);
-          // Mungkin arahkan ke login atau tampilkan pesan error umum
           return;
       }
 
@@ -161,7 +172,7 @@ const StockManagement = () => {
 
           if (!response.ok) {
               const errorData = await response.json();
-              throw new Error(errorData.message || errorData.error || response.statusText); // Ambil pesan error dari backend
+              throw new Error(errorData.message || errorData.error || response.statusText);
           }
 
           // Jika berhasil, fetch ulang data
@@ -173,28 +184,110 @@ const StockManagement = () => {
 
       } catch (error) {
           console.error("Deleting item failed:", error);
-          // Tampilkan pesan error di dalam modal delete
           setDeleteError(`Gagal menghapus: ${error.message}`);
-           // Jangan tutup modal otomatis agar user bisa lihat error
-          // setOpenConfirm(false);
-          // setSelectedItemId(null); // Keep selectedItemId to show in modal
       } finally {
-          setDeleteLoading(false); // Selesai loading
+          setDeleteLoading(false);
+      }
+  };
+
+  // --- Handler untuk Modal Form Tambah/Edit dan Aksi Simpan ---
+
+  const handleAddItem = () => {
+       setItemToEdit(null); // Set itemToEdit menjadi null untuk mode tambah
+       setSaveError(null); // Reset save error
+       setOpenForm(true); // Buka modal form
+    };
+
+  const handleEdit = (id) => {
+    console.log('Edit item clicked with ID:', id);
+    // Cari item di state items berdasarkan ID
+    const item = items.find(item => item.id === id);
+
+    console.log('Items state:', items); // DEBUG: Lihat seluruh state items
+    console.log('Found item for editing:', item); // DEBUG: Lihat item yang ditemukan
+
+
+    if (item) {
+        setItemToEdit(item); // Set itemToEdit dengan data item yang ditemukan
+        setSaveError(null); // Reset save error
+        setOpenForm(true); // Buka modal form
+    } else {
+        console.error("Item with ID not found for editing:", id);
+        // Opsional: Tampilkan pesan error ke user jika item tidak ditemukan
+        setError(`Error: Item with ID ${id} not found.`);
+    }
+  };
+
+  const handleCancelForm = () => {
+      setOpenForm(false); // Tutup modal form
+      setItemToEdit(null); // Reset itemToEdit
+      setSaveError(null); // Reset save error
+  };
+
+  const handleSaveItem = async (formData) => {
+      setSaveLoading(true); // Set loading saat proses simpan
+      setSaveError(null); // Reset save error
+
+      const token = getAuthToken();
+      if (!token) {
+          setSaveError("Authentication token missing. Cannot save.");
+          setSaveLoading(false);
+           return;
+      }
+
+      // Pastikan formData yang dikirim memiliki struktur yang sesuai dengan backend
+      // Misalnya, backend mengharapkan 'quantity', bukan 'stock'
+      const dataToSend = { ...formData };
+      // Mapping stock kembali ke quantity untuk backend
+      dataToSend.quantity = dataToSend.stock;
+      delete dataToSend.stock; // Hapus field stock jika backend tidak membutuhkannya
+
+
+      const method = dataToSend.id ? 'PUT' : 'POST'; // Tentukan method
+      const url = dataToSend.id ? `${API_URL}/api/stock/${dataToSend.id}` : `${API_URL}/api/stock`; // Tentukan URL
+
+       // Hapus ID dari body jika mode tambah
+       if (method === 'POST') {
+           delete dataToSend.id;
+       }
+
+
+      console.log('Saving data:', dataToSend); // DEBUG: Data yang dikirim ke backend
+      console.log('Method:', method, 'URL:', url); // DEBUG: Permintaan yang dibuat
+
+
+      try {
+          const response = await fetch(url, {
+              method: method,
+              headers: {
+                 'Authorization': `Bearer ${token}`,
+                 'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(dataToSend) // Kirim data form sebagai JSON
+          });
+
+          if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+               console.error("Save API error response:", errorData); // DEBUG: Respons error dari backend
+              throw new Error(errorData.message || errorData.error || response.statusText);
+          }
+
+          // Jika berhasil, fetch ulang data untuk memperbarui tabel
+          fetchItems();
+
+          // Tutup modal setelah berhasil
+          handleCancelForm(); // Panggil handler cancel untuk reset state
+
+      } catch (error) {
+          console.error("Saving item failed:", error);
+          setSaveError(`Gagal menyimpan data: ${error.message}`);
+      } finally {
+          setSaveLoading(false); // Selesai loading
       }
   };
 
 
-  // --- Handler untuk Aksi Lain (Edit, Add, In/Out) ---
-  const handleEdit = (id) => {
-    console.log('Edit item with ID:', id);
-    // TODO: Implementasi Edit (membutuhkan form/modal edit dan panggilan API PUT)
-  };
-
-  const handleAddItem = () => {
-       console.log('Add Item clicked');
-       // TODO: Implementasi Add (membutuhkan form/modal add dan panggilan API POST)
-    };
-
+    // TODO: Implementasikan handler untuk Incoming/Outgoing Goods
     const handleIncomingGoods = () => {
         console.log('Incoming Goods clicked');
     };
@@ -204,10 +297,10 @@ const StockManagement = () => {
     };
 
 
-  // Handlers untuk filter, sort, dan search - hanya update state
+  // Handlers untuk filter, sort, search - hanya update state
   const handleSearchChange = (event) => { setSearchQuery(event.target.value); };
   const handleFilterCategoryChange = (event) => { setFilterCategory(event.target.value); };
-  const handleFilterSupplierChange = (event) => { setFilterSupplier(event.target.value); };
+  const handleFilterSupplierChange = (event) => { setFilterSupplier(event.target.value); }; // Pastikan nama ini cocok
   const handleSortOrderChange = (event) => { setSortOrder(event.target.value); };
 
 
@@ -234,11 +327,12 @@ const StockManagement = () => {
 
       {/* Filters, Sort, and Search */}
       <Stack direction="row" spacing={2} justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap">
+        {/* Pastikan nama props sesuai dengan handler di sini */}
         <StockFiltersAndSortControls
           filterCategory={filterCategory}
           onFilterCategoryChange={handleFilterCategoryChange}
-          filterSupplier={filterSupplier}
-          onFilterSupplierChange={handleFilterSupplierChange}
+          filterSupplier={filterSupplier} // Pastikan nama ini cocok
+          onFilterSupplierChange={handleFilterSupplierChange} // Pastikan nama ini cocok
           sortOrder={sortOrder}
           onSortOrderChange={handleSortOrderChange}
         />
@@ -257,13 +351,15 @@ const StockManagement = () => {
               <TableRow sx={{ bgcolor: 'grey.100' }}>
                 <TableCell>ID</TableCell>
                 <TableCell>Name</TableCell>
+                {/* Tambahkan Kolom Part Number */}
+                <TableCell>Part Number</TableCell>
                 <TableCell>Category</TableCell>
                 <TableCell>Price</TableCell>
                 <TableCell>Stock</TableCell>
                 <TableCell>Supplier</TableCell>
                 <TableCell>Status</TableCell>
-                 <TableCell>UoM</TableCell>
-                 <TableCell>Remarks</TableCell>
+                <TableCell>UoM</TableCell>
+                <TableCell>Remarks</TableCell>
                 <TableCell align="center">Action</TableCell>
               </TableRow>
             </TableHead>
@@ -273,9 +369,12 @@ const StockManagement = () => {
                   <TableRow key={item.id} hover>
                     <TableCell>{item.id}</TableCell>
                     <TableCell>{item.name}</TableCell>
+                    {/* Tampilkan Part Number */}
+                     {/* Pastikan item.part_number ada dari backend */}
+                    <TableCell>{item.part_number !== undefined ? item.part_number : 'N/A'}</TableCell>
                     <TableCell>{item.category}</TableCell>
                     <TableCell>{item.price ? `Rp ${item.price.toLocaleString('id-ID')}` : 'N/A'}</TableCell>
-                    <TableCell>{item.stock !== undefined ? item.stock : 'N/A'}</TableCell> {/* Gunakan item.stock */}
+                    <TableCell>{item.stock !== undefined ? item.stock : 'N/A'}</TableCell>
                     <TableCell>{item.supplier}</TableCell>
                     <TableCell>
                       <Typography
@@ -295,7 +394,7 @@ const StockManagement = () => {
                       <Stack direction="row" spacing={1} justifyContent="center">
                         <IconButton
                           size="small" color="primary"
-                          onClick={() => handleEdit(item.id)}
+                          onClick={() => handleEdit(item.id)} // Membuka modal edit
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
@@ -311,7 +410,8 @@ const StockManagement = () => {
                 ))
               ) : (
                  <TableRow>
-                   <TableCell colSpan={10} align="center">
+                   {/* Sesuaikan colSpan dengan jumlah kolom +1 (ID, Name, Part Number, Category, Price, Stock, Supplier, Status, UoM, Remarks, Action = 11) */}
+                   <TableCell colSpan={11} align="center">
                      No items found matching the criteria.
                    </TableCell>
                  </TableRow>
@@ -323,12 +423,22 @@ const StockManagement = () => {
 
       {/* Render komponen Delete Confirmation Dialog */}
       <DeleteConfirmationDialog
-        open={openConfirm} // Dikontrol oleh state openConfirm
-        onClose={handleCancelDelete} // Handler untuk menutup modal
-        onConfirm={handleConfirmDelete} // Handler saat konfirmasi delete
-        itemId={selectedItemId} // Pass ID item yang dipilih
-        loading={deleteLoading} // Pass state loading delete
-        error={deleteError} // Pass state error delete
+        open={openConfirm}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        itemId={selectedItemId}
+        loading={deleteLoading}
+        error={deleteError}
+      />
+
+      {/* Render komponen Stock Form (untuk Tambah/Edit) */}
+      <StockForm
+          open={openForm}
+          onClose={handleCancelForm}
+          onSubmit={handleSaveItem}
+          initialData={itemToEdit} // Pass data itemToEdit
+          loading={saveLoading}
+          error={saveError}
       />
     </Box>
   );
