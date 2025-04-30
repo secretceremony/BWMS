@@ -237,7 +237,6 @@ const Layout = ({ onLogout, user }) => {
           flexGrow: 1,
           p: 3, // Uses theme spacing unit
           // Adjust width based on desktop drawer state
-          width: { md: `calc(100% - ${desktopOpen ? drawerWidth : collapsedDrawerWidth}px)` },
           mt: '64px', // Offset for fixed AppBar (adjust if AppBar height changes significantly)
           // Use background color from the theme
           bgcolor: theme.palette.background.default,
