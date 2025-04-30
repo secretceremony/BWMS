@@ -1,3 +1,4 @@
+// src/pages/StockManagement.js
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -13,10 +14,11 @@ import {
   TableRow,
   Typography,
   Paper,
-  CircularProgress, // Import CircularProgress for loading state
-  useTheme // Import useTheme
+  CircularProgress,
+  useTheme
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
 
 // Import filter, sort, search components
 import SearchInput from '../components/SearchInput'; // Adjust path
@@ -24,34 +26,34 @@ import StockFiltersAndSortControls from '../components/StockFiltersAndSortContro
 // Import delete confirmation and form modals
 import DeleteConfirmationDialog from '../components/DeleteConfirmationDialog'; // Adjust path
 import StockForm from '../components/StockForm'; // Import form component - Adjust path
+// Import the new Incoming/Outgoing forms
+import IncomingGoodsForm from '../components/IncomingGoodsForm'; // Adjust path
+import OutgoingGoodsForm from '../components/OutgoingGoodsForm'; // Adjust path
+
 
 // Get Backend URL from environment variable
-// Ensure the variable name matches your build tool (e.g., VITE_API_BASE_URL for Vite)
 const API_URL = import.meta.env.VITE_API_BASE_URL; // Rely on App.js for config error check
 
 
-// Helper to build query string (Using URLSearchParams is good)
+// Helper to build query string
 const buildQueryString = (filters) => {
     const params = new URLSearchParams();
-    // Use nullish coalescing for safety if filter values are null/undefined
     if (filters.filterCategory ?? '') params.append('category', filters.filterCategory);
-    // Assuming the prop name in StockFiltersAndSortControls is 'filterSupplier'
     if (filters.filterSupplier ?? '') params.append('supplier', filters.filterSupplier);
     if (filters.sortOrder ?? '') params.append('sort', filters.sortOrder);
     if (filters.searchQuery ?? '') params.append('q', filters.searchQuery);
-    // Add other filters if any
     return params.toString();
 };
 
-// Helper to get authentication token - Better to pass from context or props
+// Helper to get authentication token (should be consistent across your app)
 const getAuthToken = () => {
-    // Replace with your actual token storage/retrieval method (localStorage is shown as example)
     return localStorage.getItem('token');
 };
 
 
 const StockManagement = () => {
-  const theme = useTheme(); // Use the theme hook
+  const theme = useTheme();
+  const navigate = useNavigate(); // Hook for navigation
 
   // Main data and loading states
   const [items, setItems] = useState([]);
@@ -59,7 +61,6 @@ const StockManagement = () => {
   const [error, setError] = useState(null); // For main data fetching error
 
   // Filter, sort, search states
-  // Initialize states to match initial state passed to buildQueryString
   const [filterCategory, setFilterCategory] = useState('');
   const [filterSupplier, setFilterSupplier] = useState('');
   const [sortOrder, setSortOrder] = useState('');
@@ -68,8 +69,8 @@ const StockManagement = () => {
   // State for delete confirmation modal
   const [openConfirm, setOpenConfirm] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false); // Loading state for delete action
-  const [deleteError, setDeleteError] = useState(null); // For delete error message
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
 
   // State for Add/Edit form modal
   const [openForm, setOpenForm] = useState(false);
@@ -77,20 +78,25 @@ const StockManagement = () => {
   const [saveLoading, setSaveLoading] = useState(false); // Loading state for save action
   const [saveError, setSaveError] = useState(null); // Error message for save action
 
+  // --- New States for Incoming/Outgoing Modals ---
+  const [openIncomingForm, setOpenIncomingForm] = useState(false);
+  const [openOutgoingForm, setOpenOutgoingForm] = useState(false);
+  const [transactionLoading, setTransactionLoading] = useState(false); // Loading for incoming/outgoing transactions
+  const [transactionError, setTransactionError] = useState(null); // Error for incoming/outgoing transactions
+  // --- End New States ---
+
 
   // --- Logic to Fetch Data from Backend ---
   const fetchItems = async () => {
-    // Prevent fetching if API_URL is not configured (should be handled by App.js)
-    if (!API_URL) {
-        setError("Application configuration error: API URL is not set.");
-        setLoading(false);
-        return;
-    }
+    if (!API_URL) {
+        setError("Application configuration error: API URL is not set.");
+        setLoading(false);
+        return;
+    }
 
     setLoading(true);
     setError(null); // Reset main error
 
-    // Ensure state names passed to buildQueryString are correct
     const queryString = buildQueryString({
         filterCategory: filterCategory,
         filterSupplier: filterSupplier,
@@ -98,12 +104,11 @@ const StockManagement = () => {
         searchQuery: searchQuery
     });
 
-    const token = getAuthToken(); // Use the helper
+    const token = getAuthToken();
     if (!token) {
-        // This should ideally be handled by ProtectedRoute and App.js, but a safeguard is good
         setError("Authentication token not found. Please log in.");
         setLoading(false);
-        // Consider redirecting to login page here if this state is reached unexpectedly
+        // Consider redirecting to login page here
         return;
     }
 
@@ -111,34 +116,28 @@ const StockManagement = () => {
       const response = await fetch(`${API_URL}/api/stock?${queryString}`, {
            headers: {
                'Authorization': `Bearer ${token}`,
-               'Content-Type': 'application/json' // Standard header for JSON APIs
+               'Content-Type': 'application/json'
            }
       });
 
       if (!response.ok) {
-           // Attempt to parse error response body
-           const errorBody = await response.json().catch(() => ({})); // Catch JSON parsing errors
-           console.error('Fetch error details:', errorBody); // Log full error body
+           const errorBody = await response.json().catch(() => ({}));
+           console.error('Fetch error details:', errorBody);
 
            if (response.status === 401 || response.status === 403) {
                setError("Authentication error: Please login again.");
-               // Optional: Clear token and redirect if auth fails during fetch
-               // localStorage.removeItem('token');
-               // window.location.href = '/login'; // Or use Navigate
+               // Optional: Clear token and redirect
            } else {
                setError(`Failed to fetch items: ${errorBody.error || errorBody.message || response.statusText}`);
            }
-           // Throw error to stop execution in this try block and be caught below
            throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      // Assuming data structure from backend matches table columns (id, name, part_number, etc.)
       setItems(data);
 
     } catch (error) {
       console.error("Fetching items failed:", error);
-       // Set a generic error if a specific HTTP error wasn't set above
        if (!error.message.includes('HTTP error')) {
            setError("Failed to load items. Network error or server issue.");
        }
@@ -147,44 +146,38 @@ const StockManagement = () => {
     }
   };
 
-  // Effect runs on mount and when filter/sort/search states change
   useEffect(() => {
-    // Only fetch if API_URL is available (prevents fetch calls if config error exists)
-    if (API_URL) {
-        fetchItems();
-    } else {
-         // If API_URL is null here, it means configError is set in App.js
-         // The main error state will be handled by App.js rendering logic.
-         // We just ensure loading is false in this component.
-         setLoading(false);
-    }
+    if (API_URL) {
+        fetchItems();
+    } else {
+        setLoading(false);
+    }
   }, [filterCategory, filterSupplier, sortOrder, searchQuery]);
 
 
   // --- Handler for Delete Confirmation Modal and Delete Action ---
   const handleDeleteClick = (id) => {
       setSelectedItemId(id);
-      setDeleteError(null); // Reset delete error before opening modal
+      setDeleteError(null);
       setOpenConfirm(true);
   };
 
   const handleCancelDelete = () => {
       setOpenConfirm(false);
-      setSelectedItemId(null); // Clear selected ID
-      setDeleteError(null); // Ensure error is also reset when cancelled
+      setSelectedItemId(null);
+      setDeleteError(null);
   };
 
   const handleConfirmDelete = async () => {
-    // Prevent delete if API_URL is not configured
-    if (!API_URL) {
-        setDeleteError("Application configuration error: API URL is not set.");
-        return;
-    }
+    if (!API_URL) {
+        setDeleteError("Application configuration error: API URL is not set.");
+        return;
+    }
 
-      setDeleteLoading(true); // Set loading during delete process
-      setDeleteError(null); // Reset error
+      setDeleteLoading(true);
+      setDeleteError(null);
 
-      const token = getAuthToken(); // Use the helper
+      const token = getAuthToken();
       if (!token) {
           setDeleteError("Authentication token missing. Cannot delete.");
           setDeleteLoading(false);
@@ -196,162 +189,243 @@ const StockManagement = () => {
               method: 'DELETE',
               headers: {
                  'Authorization': `Bearer ${token}`,
-                 'Content-Type': 'application/json' // Required even for DELETE if backend expects it
+                 'Content-Type': 'application/json'
               }
           });
 
           if (!response.ok) {
-              // Attempt to parse error response body
               const errorData = await response.json().catch(() => ({}));
               console.error("Delete API error response:", errorData);
               throw new Error(errorData.message || errorData.error || response.statusText);
           }
 
-          // If successful, fetch data again to update table
-          fetchItems(); // This will set loading state internally
+          fetchItems(); // Refresh data
 
-          // Close modal after success
           setOpenConfirm(false);
-          setSelectedItemId(null); // Clear selected ID
+          setSelectedItemId(null);
 
       } catch (error) {
           console.error("Deleting item failed:", error);
-          setDeleteError(`Gagal menghapus: ${error.message}`); // Set error message for the modal
+          setDeleteError(`Gagal menghapus: ${error.message}`);
       } finally {
-          setDeleteLoading(false); // Finish loading
+          setDeleteLoading(false);
       }
   };
 
   // --- Handler for Form Modal (Add/Edit) and Save Action ---
-
-    // Handler to open form for adding
   const handleAddItem = () => {
-       setItemToEdit(null); // Set itemToEdit to null for add mode
-       setSaveError(null); // Reset save error
-       setOpenForm(true); // Open the form modal
+       setItemToEdit(null);
+       setSaveError(null);
+       setOpenForm(true);
     };
 
-    // Handler to open form for editing
   const handleEdit = (id) => {
-    console.log('Edit item clicked with ID:', id);
-    // Find item in state items based on ID
     const item = items.find(item => item.id === id);
-
     if (item) {
-        setItemToEdit(item); // Set itemToEdit with found item data
-        setSaveError(null); // Reset save error
-        setOpenForm(true); // Open the form modal
+        setItemToEdit(item);
+        setSaveError(null);
+        setOpenForm(true);
     } else {
         console.error("Item with ID not found for editing:", id);
-        // Optional: Show an error message to the user on the main page
-        // setError(`Error: Item with ID ${id} not found.`);
+        // setError(`Error: Item with ID ${id} not found.`); // Optional: show error on main page
     }
   };
 
-    // Handler to close the form modal
   const handleCancelForm = () => {
-      setOpenForm(false); // Close the form modal
-      setItemToEdit(null); // Reset itemToEdit (important for add mode on next open)
-      setSaveError(null); // Reset save error
+      setOpenForm(false);
+      setItemToEdit(null);
+      setSaveError(null);
   };
 
-    // Handler to save item (called by StockForm onSubmit)
   const handleSaveItem = async (formData) => {
-    // Prevent save if API_URL is not configured
-    if (!API_URL) {
-        setSaveError("Application configuration error: API URL is not set.");
-        return;
-    }
+    if (!API_URL) {
+        setSaveError("Application configuration error: API URL is not set.");
+        return;
+    }
 
-      setSaveLoading(true); // Set loading during save process
-      setSaveError(null); // Reset save error
+      setSaveLoading(true);
+      setSaveError(null);
 
-      const token = getAuthToken(); // Use the helper
+      const token = getAuthToken();
       if (!token) {
           setSaveError("Authentication token missing. Cannot save.");
           setSaveLoading(false);
           return;
       }
 
-      // --- IMPORTANT: Verify formData structure matches backend expectations ---
-      // The StockForm component MUST provide data in a format that the backend expects.
-      // Example: if backend expects 'quantity', and your form uses 'stock', do the mapping here.
-      // Verify the field names and data types required by your backend API's POST and PUT endpoints.
+      // Prepare dataToSend - formData already includes 'id' if editing
       const dataToSend = { ...formData };
 
-      // Example mapping: Convert 'stock' from form to 'quantity' for backend (if needed)
+      // Map 'stock' to 'quantity' and ensure numbers are numbers
       if (dataToSend.hasOwnProperty('stock')) {
-          dataToSend.quantity = Number(dataToSend.stock); // Ensure it's a number
+          dataToSend.quantity = Number(dataToSend.stock);
           delete dataToSend.stock;
       }
-      // Example: Convert 'price' to a number (if needed)
-      if (dataToSend.hasOwnProperty('price') && typeof dataToSend.price === 'string') {
-          // Basic attempt to parse Rupiah format if your form outputs it like "Rp 1.234.567"
-          dataToSend.price = parseFloat(dataToSend.price.replace(/[^0-9,-]+/g, "").replace(",", "."));
-          if (isNaN(dataToSend.price)) dataToSend.price = 0; // Default to 0 or handle error
+      if (dataToSend.hasOwnProperty('price')) {
+          dataToSend.price = Number(dataToSend.price);
       }
-        // Ensure required fields exist and have correct types based on your API
+      // Ensure part_number is sent as a number if backend expects it
+      if (dataToSend.hasOwnProperty('part_number')) {
+          dataToSend.part_number = Number(dataToSend.part_number);
+      }
 
 
-      const method = dataToSend.id ? 'PUT' : 'POST'; // Determine method based on presence of ID
-      const url = dataToSend.id ? `${API_URL}/api/stock/${dataToSend.id}` : `${API_URL}/api/stock`; // Determine URL
+      const method = dataToSend.id ? 'PUT' : 'POST';
+      const url = dataToSend.id ? `${API_URL}/api/stock/${dataToSend.id}` : `${API_URL}/api/stock`;
 
       // For POST requests (add mode), remove the ID from the request body if it exists
+      // This is crucial if your backend auto-generates/validates the custom ID from the body
       if (method === 'POST' && dataToSend.hasOwnProperty('id')) {
-          delete dataToSend.id;
+          // If backend expects custom ID in body for POST, DO NOT delete it here.
+          // If backend expects ID only in URL for PUT and ignores body ID, delete it for PUT too.
+          // Assuming backend expects custom ID in body for POST: do nothing here.
       }
 
-      console.log('Saving data:', dataToSend); // DEBUG: Data being sent to backend
-      console.log('Method:', method, 'URL:', url); // DEBUG: Request being made
+
+      console.log('Saving data:', dataToSend);
+      console.log('Method:', method, 'URL:', url);
 
       try {
           const response = await fetch(url, {
               method: method,
               headers: {
                  'Authorization': `Bearer ${token}`,
-                 'Content-Type': 'application/json' // Required for sending JSON body
+                 'Content-Type': 'application/json'
               },
-              body: JSON.stringify(dataToSend) // Send form data as JSON
+              body: JSON.stringify(dataToSend)
           });
 
           if (!response.ok) {
-              // Attempt to parse error response body
               const errorData = await response.json().catch(() => ({}));
-               console.error("Save API error response:", errorData); // DEBUG: Backend error response
+              console.error("Save API error response:", errorData);
               throw new Error(errorData.message || errorData.error || response.statusText);
           }
 
-          // If successful, fetch data again to update the table
-          fetchItems(); // This will set loading state internally
+          fetchItems(); // Refresh data
 
-          // Close modal after success
-          handleCancelForm(); // Call cancel handler to close modal and reset state
+          handleCancelForm(); // Close modal and reset state
 
       } catch (error) {
           console.error("Saving item failed:", error);
-          setSaveError(`Gagal menyimpan data: ${error.message}`); // Set error message for the form modal
+          setSaveError(`Gagal menyimpan data: ${error.message}`);
       } finally {
-          setSaveLoading(false); // Finish loading
+          setSaveLoading(false);
       }
   };
 
+  // --- Handlers to open Incoming/Outgoing Modals ---
+  const handleOpenIncomingForm = () => {
+      setTransactionError(null); // Reset transaction error
+      setOpenIncomingForm(true);
+  };
 
-    // TODO: Implement handlers for Incoming/Outgoing Goods
-    const handleIncomingGoods = () => {
-        console.log('Incoming Goods clicked');
-        // Example: Open a specific modal or navigate to a different page for incoming goods
-    };
+  const handleOpenOutgoingForm = () => {
+      setTransactionError(null); // Reset transaction error
+      setOpenOutgoingForm(true);
+  };
 
-    const handleOutgoingGoods = () => {
-        console.log('Outgoing Goods clicked');
-        // Example: Open a specific modal or navigate to a different page for outgoing goods
-    };
+  // --- Handlers to process Incoming/Outgoing Transactions ---
+  // These will be passed to the onSubmit prop of the new forms
+  const handleProcessIncoming = async (transactionData) => {
+    if (!API_URL) {
+        setTransactionError("Application configuration error: API URL is not set.");
+        return;
+    }
+
+    setTransactionLoading(true);
+    setTransactionError(null);
+
+    const token = getAuthToken();
+    if (!token) {
+        setTransactionError("Authentication token missing. Cannot record transaction.");
+        setTransactionLoading(false);
+        return;
+    }
+
+    try {
+        // API call to record incoming goods
+        const response = await fetch(`${API_URL}/api/stock/incoming`, { // Assuming this endpoint exists
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(transactionData) // transactionData includes itemId, quantity, date, remarks
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error("Incoming API error response:", errorData);
+            throw new Error(errorData.message || errorData.error || response.statusText);
+        }
+
+        // If successful:
+        fetchItems(); // Refresh the stock list to show updated quantity
+        setOpenIncomingForm(false); // Close the modal
+        navigate('/history'); // Navigate to the History page
+
+    } catch (error) {
+        console.error("Recording incoming goods failed:", error);
+        setTransactionError(`Failed to record incoming goods: ${error.message}`);
+    } finally {
+        setTransactionLoading(false);
+    }
+  };
+
+  const handleProcessOutgoing = async (transactionData) => {
+    if (!API_URL) {
+        setTransactionError("Application configuration error: API URL is not set.");
+        return;
+    }
+
+    setTransactionLoading(true);
+    setTransactionError(null);
+
+    const token = getAuthToken();
+    if (!token) {
+        setTransactionError("Authentication token missing. Cannot record transaction.");
+        setTransactionLoading(false);
+        return;
+    }
+
+    try {
+        // API call to record outgoing goods
+        const response = await fetch(`${API_URL}/api/stock/outgoing`, { // Assuming this endpoint exists
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(transactionData) // transactionData includes itemId, quantity, date, remarks
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error("Outgoing API error response:", errorData);
+            // Check for specific errors like insufficient stock (if backend sends a specific status/message)
+            if (response.status === 400 && errorData.error === 'Insufficient stock') {
+                throw new Error("Insufficient stock for this outgoing transaction.");
+            }
+            throw new Error(errorData.message || errorData.error || response.statusText);
+        }
+
+        // If successful:
+        fetchItems(); // Refresh the stock list to show updated quantity
+        setOpenOutgoingForm(false); // Close the modal
+        navigate('/history'); // Navigate to the History page
+
+    } catch (error) {
+        console.error("Recording outgoing goods failed:", error);
+        setTransactionError(`Failed to record outgoing goods: ${error.message}`);
+    } finally {
+        setTransactionLoading(false);
+    }
+  };
 
 
   // Handlers for filter, sort, search - only update state, useEffect triggers fetch
   const handleSearchChange = (event) => { setSearchQuery(event.target.value); };
   const handleFilterCategoryChange = (event) => { setFilterCategory(event.target.value); };
-  // Assuming the prop name in StockFiltersAndSortControls is 'filterSupplier'
   const handleFilterSupplierChange = (event) => { setFilterSupplier(event.target.value); };
   const handleSortOrderChange = (event) => { setSortOrder(event.target.value); };
 
@@ -360,7 +434,6 @@ const StockManagement = () => {
 
   // Display main loading state
   if (loading) {
-      // Use MUI components for loading state
       return (
           <Box sx={{ p: theme.spacing(4), textAlign: 'center' }}>
               <CircularProgress />
@@ -371,7 +444,6 @@ const StockManagement = () => {
 
   // Display main error state (e.g., fetch failure)
   if (error) {
-      // Use MUI components for error state
       return (
           <Box sx={{ p: theme.spacing(4), textAlign: 'center' }}>
               <Typography color="error" variant="h6">Error: {error}</Typography>
@@ -390,28 +462,54 @@ const StockManagement = () => {
       </Typography>
 
       {/* Top Buttons (Add, Incoming, Outgoing) */}
-      {/* Use theme spacing for Stack and margin bottom */}
       <Stack direction="row" spacing={theme.spacing(2)} mb={theme.spacing(3)} flexWrap="wrap">
         {/* "Add Item" Button */}
         <Button
           variant="contained"
           size="medium"
           color="primary"
-          onClick={handleAddItem} // This handler opens the form modal in add mode
+          onClick={handleAddItem} // Opens the StockForm modal in add mode
         >
           Add Item
         </Button>
-        {/* Other Action Buttons */}
-        <Button variant="outlined" size="medium" onClick={handleIncomingGoods} >Incoming Goods</Button>
-        <Button variant="outlined" size="medium" color="secondary" onClick={handleOutgoingGoods} >Outgoing Goods</Button>
+        {/* "Incoming Goods" Button - Opens the new IncomingGoodsForm */}
+        <Button
+          variant="outlined"
+          size="medium"
+          color="primary"
+          onClick={handleOpenIncomingForm} // Opens the Incoming form
+          disabled={transactionLoading} // Disable buttons while a transaction is processing
+        >
+          Incoming Goods
+        </Button>
+        {/* "Outgoing Goods" Button - Opens the new OutgoingGoodsForm */}
+        <Button
+          variant="outlined"
+          size="medium"
+          color="secondary"
+          onClick={handleOpenOutgoingForm} // Opens the Outgoing form
+          disabled={transactionLoading} // Disable buttons while a transaction is processing
+        >
+          Outgoing Goods
+        </Button>
+        {/* Display transaction loading/error status */}
+        {transactionLoading && (
+            <Box sx={{ display: 'flex', alignItems: 'center', ml: theme.spacing(2) }}>
+                <CircularProgress size={20} sx={{ mr: 1 }} />
+                <Typography variant="body2">Processing transaction...</Typography>
+            </Box>
+        )}
+        {transactionError && (
+            <Typography color="error" variant="body2" sx={{ ml: theme.spacing(2) }}>
+              {transactionError}
+            </Typography>
+        )}
       </Stack>
 
+
       {/* Filters, Sort, and Search */}
-      {/* Use theme spacing for Stack and margin bottom */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={theme.spacing(2)} justifyContent="space-between" alignItems="center" mb={theme.spacing(3)} flexWrap="wrap"> {/* Responsive direction */}
-        {/* Filters and Sort Controls component */}
-        {/* Ensure names match expected props in StockFiltersAndSortControls */}
-        <Box> {/* Wrap filters/sort if needed for alignment */}
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={theme.spacing(2)} justifyContent="space-between" alignItems="center" mb={theme.spacing(3)} flexWrap="wrap">
+        <Box>
           <StockFiltersAndSortControls
             filterCategory={filterCategory}
             onFilterCategoryChange={handleFilterCategoryChange}
@@ -421,8 +519,7 @@ const StockManagement = () => {
             onSortOrderChange={handleSortOrderChange}
           />
         </Box>
-        {/* SearchInput component */}
-        <Box sx={{ minWidth: { xs: '100%', sm: 200 } }}> {/* Responsive minWidth */}
+        <Box sx={{ minWidth: { xs: '100%', sm: 200 } }}>
           <SearchInput
             searchQuery={searchQuery}
             onSearchChange={handleSearchChange}
@@ -432,15 +529,11 @@ const StockManagement = () => {
       </Stack>
 
       {/* Items Table */}
-      {/* Added elevation and border radius from theme */}
       <Card elevation={3} sx={{ borderRadius: theme.shape.borderRadius }}>
-        {/* Remove default Paper boxShadow if Card has one */}
         <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
           <Table>
             <TableHead>
-              {/* Use theme grey or action.hover for header background, bold text */}
               <TableRow sx={{ bgcolor: theme.palette.grey[100] }}>
-                {/* Added fontWeight bold to headers */}
                 <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Part Number</TableCell>
@@ -457,33 +550,28 @@ const StockManagement = () => {
             <TableBody>
               {items.length > 0 ? (
                 items.map((item) => (
-                  /* Added hover effect */
                   <TableRow key={item.id} hover>
                     <TableCell>{item.id}</TableCell>
                     <TableCell>{item.name}</TableCell>
-                    {/* Use nullish coalescing ?? for default 'N/A' */}
                     <TableCell>{item.part_number ?? 'N/A'}</TableCell>
                     <TableCell>{item.category ?? 'N/A'}</TableCell>
-                    {/* Format price */}
                     <TableCell>
                         {item.price !== undefined && item.price !== null
-                            ? `Rp ${Number(item.price).toLocaleString('id-ID')}` // Ensure it's a number before formatting
+                            ? `Rp ${Number(item.price).toLocaleString('id-ID')}`
                             : 'N/A'}
                     </TableCell>
-                    {/* Use nullish coalescing ?? for default 'N/A' */}
                     <TableCell>{item.stock ?? 'N/A'}</TableCell>
                     <TableCell>{item.supplier ?? 'N/A'}</TableCell>
                     <TableCell>
                       <Typography
                         sx={{
-                          px: theme.spacing(2), py: theme.spacing(0.5), // Use theme spacing
-                          borderRadius: 999, // Use a high value for pill shape
+                          px: theme.spacing(2), py: theme.spacing(0.5),
+                          borderRadius: 999,
                           display: 'inline-block',
-                          // Use theme colors for background and text
                           bgcolor: item.status === 'Available' ? theme.palette.success.light : theme.palette.error.light,
-                          color: item.status === 'Available' ? theme.palette.success.dark : theme.palette.error.dark, // Use dark for text contrast
+                          color: item.status === 'Available' ? theme.palette.success.dark : theme.palette.error.dark,
                           fontSize: '0.8rem',
-                          fontWeight: 'medium' // Make status text slightly bolder
+                          fontWeight: 'medium'
                         }}
                       >
                         {item.status ?? 'N/A'}
@@ -492,20 +580,18 @@ const StockManagement = () => {
                      <TableCell>{item.uom ?? 'N/A'}</TableCell>
                      <TableCell>{item.remarks ?? 'N/A'}</TableCell>
                     <TableCell align="center">
-                      {/* Use theme spacing for Stack */}
                       <Stack direction="row" spacing={theme.spacing(0.5)} justifyContent="center">
-                        {/* Action Buttons */}
                         <IconButton
                           size="small"
                           color="primary"
-                          onClick={() => handleEdit(item.id)} // Opens the form modal in edit mode
+                          onClick={() => handleEdit(item.id)}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => handleDeleteClick(item.id)} // Opens the delete confirmation modal
+                          onClick={() => handleDeleteClick(item.id)}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -525,26 +611,48 @@ const StockManagement = () => {
         </TableContainer>
       </Card>
 
+      {/* Render components that appear as overlays (Modals) */}
+
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog
         open={openConfirm}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        itemId={selectedItemId} // Pass the item ID to be deleted
-        loading={deleteLoading} // Pass delete loading state
-        error={deleteError} // Pass the specific delete error
+        itemId={selectedItemId}
+        loading={deleteLoading}
+        error={deleteError}
       />
 
       {/* Stock Form (for Add/Edit) */}
-      {/* initialData will be null for Add, or the item object for Edit */}
       <StockForm
           open={openForm}
           onClose={handleCancelForm}
-          onSubmit={handleSaveItem} // This handler processes the form data when submitted
-          initialData={itemToEdit} // Pass data for editing (null for add mode)
-          loading={saveLoading} // Pass the specific save loading state
-          error={saveError} // Pass the specific save error message
+          onSubmit={handleSaveItem}
+          initialData={itemToEdit}
+          loading={saveLoading}
+          error={saveError}
       />
+
+      {/* --- New: Incoming Goods Form --- */}
+      <IncomingGoodsForm
+          open={openIncomingForm}
+          onClose={() => setOpenIncomingForm(false)} // Simple close handler
+          onSubmit={handleProcessIncoming} // Handler to process the incoming transaction
+          loading={transactionLoading} // Use transaction loading state
+          error={transactionError} // Use transaction error state
+      />
+      {/* --- End New --- */}
+
+      {/* --- New: Outgoing Goods Form --- */}
+      <OutgoingGoodsForm
+          open={openOutgoingForm}
+          onClose={() => setOpenOutgoingForm(false)} // Simple close handler
+          onSubmit={handleProcessOutgoing} // Handler to process the outgoing transaction
+          loading={transactionLoading} // Use transaction loading state
+          error={transactionError} // Use transaction error state
+      />
+      {/* --- End New --- */}
+
     </Box>
   );
 };
