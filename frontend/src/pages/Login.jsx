@@ -1,144 +1,191 @@
 import React, { useState } from 'react';
 import {
-  Box, Typography, TextField, Button, Container, Card, CardContent,
-  InputAdornment, IconButton, Link, useTheme // Import useTheme
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Container,
+  Card,
+  CardContent,
+  InputAdornment,
+  IconButton,
+  useTheme,
+  Stack,
+  Link
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 
-// Login Component
-const Login = ({ onLogin, error, loading }) => {
-  const theme = useTheme(); // Use the theme hook
+const AuthForm = ({ onLogin, onRegister, error, loading }) => {
+  const theme = useTheme();
+  const [isLogin, setIsLogin] = useState(true);
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
 
-  const handleClickShowPassword = () => {
-    setShowPassword((prev) => !prev);
-  };
+  const handleToggleMode = () => {
+    setIsLogin((prev) => !prev);
+    setFormData({ username: '', email: '', password: '', confirmPassword: '' });
+  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };
 
-   
-    if (!email || !password) {
-      console.log('Email or Password is empty');
-      return;
-    }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (isLogin) {
+      if (!formData.email || !formData.password) return;
+      try {
+        await onLogin(formData.email, formData.password);
+      } catch (err) {
+        console.error('Login error:', err);
+      }
+    } else {
+      const { username, email, password, confirmPassword } = formData;
+      if (!username || !email || !password || !confirmPassword) return;
+      if (password !== confirmPassword) {
+        alert('Password does not match');
+        return;
+      }
+      try {
+        await onRegister({ username, email, password });
+      } catch (err) {
+        console.error('Register error:', err);
+      }
+    }
+  };
 
-    console.log('Email:', email);
-    console.log('Password:', password);
-   
-    try {
-      await onLogin(email, password);
-    } catch (err) {
-      console.error('Login error:', err);
-    }
-  };
+  return (
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.palette.background.default,
+        p: 3
+      }}
+    >
+      <Container maxWidth="sm">
+        <Box sx={{ mb: 4, textAlign: 'center' }}>
+          <Typography variant="h4" fontWeight="bold" color="primary">
+            BiruniWMS
+          </Typography>
+        </Box>
 
-  return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        // Use background color from theme
-        // Your theme's background.default is white (#ffffff)
-        // The original was a light grey (#f5f5f5). Adjust theme if needed.
-        backgroundColor: theme.palette.background.default,
-        padding: theme.spacing(3), // Use theme spacing
-      }}
-    >
-      <Container maxWidth="sm">
-        <Box sx={{ mb: theme.spacing(4), textAlign: 'center' }}> {/* Use theme spacing */}
-          <Typography variant="h4" sx={{
-            fontWeight: 'bold',
-            // Use primary color from theme
-            color: theme.palette.primary.main
-          }}>
-            BiruniWMS
-          </Typography>
-        </Box>
+        <Card elevation={3} sx={{ borderRadius: theme.shape.borderRadius }}>
+          <CardContent sx={{ p: 4 }}>
+            <Typography variant="h4" align="center" fontWeight={500} mb={3}>
+              {isLogin ? 'Welcome' : 'Register'}
+            </Typography>
 
-        <Card elevation={3} sx={{ borderRadius: theme.shape.borderRadius, overflow: 'hidden' }}> {/* Use theme border radius */}
-          <CardContent sx={{ p: theme.spacing(4) }}> {/* Use theme spacing */}
-            <Typography variant="h4" component="h1" sx={{ mb: theme.spacing(3), fontWeight: 500, textAlign: 'center' }}> {/* Use theme spacing */}
-              Welcome
-            </Typography>
+            <Box component="form" noValidate onSubmit={handleSubmit}>
+              {!isLogin && (
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  label="Username"
+                  name="username"
+                  value={formData.name}
+                  onChange={handleChange}
+                />
+              )}
 
-            <Box component="form" noValidate onSubmit={handleSubmit}>
-              {/* TextField components automatically use theme primary/secondary colors */}
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                id="email"
-                label="Email address"
-                name="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                variant="outlined"
-                sx={{ mb: theme.spacing(2) }}
-              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                label="Email address"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                autoComplete="email"
+              />
 
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="password"
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                variant="outlined"
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      {/* Icons automatically use theme text/action colors */}
-                      <IconButton onClick={handleClickShowPassword} edge="end">
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ mb: theme.spacing(1) }}
-              />
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                label="Password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={handleChange}
+                autoComplete="current-password"
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPassword((prev) => !prev)}>
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
+              />
 
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                disabled={loading}
-                sx={{
-                  py: theme.spacing(1.5), // Use theme spacing
-                  // Use primary color from theme
-                  backgroundColor: theme.palette.primary.main,
-                  // Use generated dark shade for hover state
-                  '&:hover': { backgroundColor: theme.palette.primary.dark },
-                  borderRadius: theme.shape.borderRadius, // Use theme border radius
-                  textTransform: 'none',
-                  fontSize: '1rem', // Standard font size, can be kept or themed
-                  fontWeight: 500, // Standard font weight, can be kept or themed
-                }}
-              >
-                {loading ? 'Signing In...' : 'Sign In'}
-              </Button>
+              {!isLogin && (
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  label="Confirm Password"
+                  name="confirmPassword"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                />
+              )}
 
-              {error && (
-                <Typography color="error" align="center" sx={{ mt: theme.spacing(2) }}> {/* Use theme spacing */}
-                  {error}
-                </Typography>
-              )}
-            </Box>
-          </CardContent>
-        </Card>
-      </Container>
-    </Box>
-  );
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={loading}
+                sx={{
+                  mt: 2,
+                  py: 1.5,
+                  backgroundColor: theme.palette.primary.main,
+                  '&:hover': {
+                    backgroundColor: theme.palette.primary.dark
+                  },
+                  borderRadius: theme.shape.borderRadius,
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  fontWeight: 500
+                }}
+              >
+                {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Sign Up'}
+              </Button>
+
+              {error && (
+                <Typography color="error" align="center" sx={{ mt: 2 }}>
+                  {error}
+                </Typography>
+              )}
+
+              <Stack direction="row" justifyContent="center" mt={3}>
+                <Typography variant="body2">
+                  {isLogin ? "Don't have an account?" : 'Already have an account?'}
+                </Typography>
+                <Link component="button" ml={1} onClick={handleToggleMode}>
+                  {isLogin ? 'Sign Up' : 'Sign In'}
+                </Link>
+              </Stack>
+            </Box>
+          </CardContent>
+        </Card>
+      </Container>
+    </Box>
+  );
 };
 
-export default Login;
+export default AuthForm;
