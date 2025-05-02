@@ -15,7 +15,8 @@ import {
   Typography,
   Paper,
   CircularProgress,
-  useTheme
+  useTheme,
+  useMediaQuery // Import useMediaQuery for conditional rendering/styles
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
@@ -53,6 +54,7 @@ const getAuthToken = () => {
 
 const StockManagement = () => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // Determine if screen is small (mobile)
   const navigate = useNavigate(); // Hook for navigation
 
   // Main data and loading states
@@ -245,64 +247,57 @@ const StockManagement = () => {
   };
 
 const handleSaveItem = async (formData) => { // 'formData' here is the data object ready for the backend
-        if (!API_URL) {
-          setSaveError("Application configuration error: API URL is not set.");
-          return;
-        }
-    
-        setSaveLoading(true);
-        setSaveError(null);
-    
-        const token = getAuthToken();
-        if (!token) {
-          setSaveError("Authentication token missing. Cannot save.");
-          setSaveLoading(false);
-          navigate('/login');
-          return;
-        }
-    
-        // *** REMOVE the block that was doing the redundant mapping and deletion ***
-        // const dataToSend = {
-        //   ...formData,
-        //   quantity: formData.stock, // This was setting quantity to undefined
-        // };
-        // delete dataToSend.stock; // This was redundant
-    
-        // Use the data directly as received from StockForm
-        const dataToSend = formData; // <-- Use the data object directly
-    
-        console.log("Data being sent to backend:", JSON.stringify(dataToSend)); // Keep this log for verification
-    
-        const method = dataToSend.id ? 'PUT' : 'POST';
-        const url = dataToSend.id ? `${API_URL}/api/stock/${dataToSend.id}` : `${API_URL}/api/stock`;
-    
-        try {
-          const response = await fetch(url, {
-            method: method,
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(dataToSend), // Send the correctly prepared data
-          });
-    
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || errorData.error || response.statusText);
-          }
-    
-          // Success
-          fetchItems(); // Refresh data after successful save
-          handleCancelForm(); // Close the modal
-    
-        } catch (error) {
-          console.error("Saving item failed:", error);
-          setSaveError(`Gagal menyimpan data: ${error.message}`);
-        } finally {
-          setSaveLoading(false);
-        }
-    };
-  
+        if (!API_URL) {
+          setSaveError("Application configuration error: API URL is not set.");
+          return;
+        }
+
+        setSaveLoading(true);
+        setSaveError(null);
+
+        const token = getAuthToken();
+        if (!token) {
+          setSaveError("Authentication token missing. Cannot save.");
+          setSaveLoading(false);
+          navigate('/login');
+          return;
+        }
+
+        // Use the data directly as received from StockForm
+        const dataToSend = formData; // <-- Use the data object directly
+
+        console.log("Data being sent to backend:", JSON.stringify(dataToSend)); // Keep this log for verification
+
+        const method = dataToSend.id ? 'PUT' : 'POST';
+        const url = dataToSend.id ? `${API_URL}/api/stock/${dataToSend.id}` : `${API_URL}/api/stock`;
+
+        try {
+          const response = await fetch(url, {
+            method: method,
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dataToSend), // Send the correctly prepared data
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || errorData.error || response.statusText);
+          }
+
+          // Success
+          fetchItems(); // Refresh data after successful save
+          handleCancelForm(); // Close the modal
+
+        } catch (error) {
+          console.error("Saving item failed:", error);
+          setSaveError(`Gagal menyimpan data: ${error.message}`);
+        } finally {
+          setSaveLoading(false);
+        }
+    };
+
   // --- Handlers to open Incoming/Outgoing Modals ---
   const handleOpenIncomingForm = () => {
       setTransactionError(null); // Reset transaction error
@@ -466,21 +461,29 @@ const handleSaveItem = async (formData) => { // 'formData' here is the data obje
 
   return (
     /* Main container Box - Use theme spacing for padding */
-    <Box sx={{ p: theme.spacing(4) }}>
+    <Box sx={{ p: theme.spacing(2, 2, 4, 2) /* Add responsive padding: top, right, bottom, left */ }}>
 
       {/* Page Title */}
-      <Typography variant="h4" component="h1" gutterBottom sx={{ mb: theme.spacing(3) }}>
+      <Typography variant={isMobile ? "h5" : "h4"} component="h1" gutterBottom sx={{ mb: theme.spacing(3) }}>
           Stock Management
       </Typography>
 
       {/* Top Buttons (Add, Incoming, Outgoing) */}
-      <Stack direction="row" spacing={theme.spacing(2)} mb={theme.spacing(3)} flexWrap="wrap" alignItems="center">
+      {/* Responsive Stack direction and spacing */}
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={{ xs: 1.5, sm: 2 }} // Adjusted spacing for mobile
+        mb={theme.spacing(3)}
+        flexWrap="wrap"
+        alignItems={{ xs: 'stretch', sm: 'center' }} // Stretch items on mobile, center on larger
+      >
         {/* "Add Item" Button */}
         <Button
           variant="contained"
-          size="medium"
+          size="medium" // Or 'small' for very small screens?
           color="primary"
           onClick={handleAddItem} // Opens the StockForm modal in add mode
+          fullWidth={isMobile} // Make button full width on mobile
         >
           Add Item
         </Button>
@@ -491,6 +494,7 @@ const handleSaveItem = async (formData) => { // 'formData' here is the data obje
           color="primary"
           onClick={handleOpenIncomingForm} // Opens the Incoming form
           disabled={transactionLoading} // Disable buttons while a transaction is processing
+          fullWidth={isMobile} // Make button full width on mobile
         >
           Incoming Goods
         </Button>
@@ -501,27 +505,37 @@ const handleSaveItem = async (formData) => { // 'formData' here is the data obje
           color="secondary"
           onClick={handleOpenOutgoingForm} // Opens the Outgoing form
           disabled={transactionLoading} // Disable buttons while a transaction is processing
+          fullWidth={isMobile} // Make button full width on mobile
         >
           Outgoing Goods
         </Button>
         {/* Display transaction loading/error status */}
-        {transactionLoading && (
-            <Box sx={{ display: 'flex', alignItems: 'center', ml: theme.spacing(2) }}>
-                <CircularProgress size={20} sx={{ mr: 1 }} />
-                <Typography variant="body2">Processing transaction...</Typography>
+        {(transactionLoading || transactionError) && ( // Show Box only if loading or error
+            <Box sx={{ display: 'flex', alignItems: 'center', mt: { xs: theme.spacing(1), sm: 0 }, ml: { xs: 0, sm: theme.spacing(2) } }}> {/* Adjust margin/spacing for mobile */}
+                {transactionLoading && <CircularProgress size={20} sx={{ mr: 1 }} />}
+                {transactionLoading && <Typography variant="body2">Processing transaction...</Typography>}
+                {transactionError && (
+                    <Typography color="error" variant="body2">
+                      {transactionError}
+                    </Typography>
+                )}
             </Box>
-        )}
-        {transactionError && (
-            <Typography color="error" variant="body2" sx={{ ml: theme.spacing(2) }}>
-              {transactionError}
-            </Typography>
         )}
       </Stack>
 
 
       {/* Filters, Sort, and Search */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={theme.spacing(2)} justifyContent="space-between" alignItems="center" mb={theme.spacing(3)} flexWrap="wrap">
-        <Box>
+      {/* Responsive Stack direction and spacing */}
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={{ xs: 2, sm: 2 }} // Adjusted spacing for mobile
+        justifyContent="space-between"
+        alignItems="center"
+        mb={theme.spacing(3)}
+        flexWrap="wrap" // Allow wrapping if needed on smaller screens
+      >
+        {/* Filters and Sort occupy full width on mobile */}
+        <Box sx={{ width: { xs: '100%', sm: 'auto' } }}>
           <StockFiltersAndSortControls
             filterCategory={filterCategory}
             onFilterCategoryChange={handleFilterCategoryChange}
@@ -529,33 +543,38 @@ const handleSaveItem = async (formData) => { // 'formData' here is the data obje
             onFilterSupplierChange={handleFilterSupplierChange}
             sortOrder={sortOrder}
             onSortOrderChange={handleSortOrderChange}
+            // You might need to pass `isMobile` to the controls component
+            // if it needs to adjust its internal layout based on screen size.
           />
         </Box>
+        {/* Search Input occupies full width on mobile */}
         <Box sx={{ minWidth: { xs: '100%', sm: 200 } }}>
           <SearchInput
             searchQuery={searchQuery}
             onSearchChange={handleSearchChange}
-            placeholder="Search by ID or Name..."
+            placeholder="Search..." // Shortened placeholder for mobile
           />
         </Box>
       </Stack>
 
       {/* Items Table */}
       <Card elevation={3} sx={{ borderRadius: theme.shape.borderRadius }}>
-        <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
-          <Table>
+        {/* Enable horizontal scrolling for the table on small screens */}
+        <TableContainer component={Paper} sx={{ boxShadow: 'none', overflowX: 'auto' }}>
+          <Table size={isMobile ? "small" : "medium"}> {/* Use smaller table size on mobile */}
             <TableHead>
               <TableRow sx={{ bgcolor: theme.palette.grey[100] }}>
+                {/* Conditionally hide less important columns on mobile */}
                 <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
                 <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Part Number</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Price</TableCell>
+                {!isMobile && <TableCell sx={{ fontWeight: 'bold' }}>Part Number</TableCell>} {/* Hide on mobile */}
+                {!isMobile && <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>} {/* Hide on mobile */}
+                {!isMobile && <TableCell sx={{ fontWeight: 'bold' }}>Price</TableCell>} {/* Hide on mobile */}
                 <TableCell sx={{ fontWeight: 'bold' }}>Stock</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Supplier</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>UoM</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Remarks</TableCell>
+                {!isMobile && <TableCell sx={{ fontWeight: 'bold' }}>Supplier</TableCell>} {/* Hide on mobile */}
+                {!isMobile && <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>} {/* Hide on mobile */}
+                {!isMobile && <TableCell sx={{ fontWeight: 'bold' }}>UoM</TableCell>} {/* Hide on mobile */}
+                {!isMobile && <TableCell sx={{ fontWeight: 'bold' }}>Remarks</TableCell>} {/* Hide on mobile */}
                 <TableCell align="center" sx={{ fontWeight: 'bold' }}>Action</TableCell>
               </TableRow>
             </TableHead>
@@ -565,33 +584,37 @@ const handleSaveItem = async (formData) => { // 'formData' here is the data obje
                   <TableRow key={item.id} hover>
                     <TableCell>{item.id}</TableCell>
                     <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.part_number ?? 'N/A'}</TableCell>
-                    <TableCell>{item.category ?? 'N/A'}</TableCell>
-                    <TableCell>
-                        {item.price !== undefined && item.price !== null
-                            ? `Rp ${Number(item.price).toLocaleString('id-ID')}`
-                            : 'N/A'}
-                    </TableCell>
+                    {!isMobile && <TableCell>{item.part_number ?? 'N/A'}</TableCell>}
+                    {!isMobile && <TableCell>{item.category ?? 'N/A'}</TableCell>}
+                    {!isMobile && (
+                      <TableCell>
+                          {item.price !== undefined && item.price !== null
+                              ? `Rp ${Number(item.price).toLocaleString('id-ID')}`
+                              : 'N/A'}
+                      </TableCell>
+                    )}
                     {/* Display backend's 'quantity' as 'Stock' for the user */}
                     <TableCell>{item.quantity ?? 'N/A'}</TableCell>
-                    <TableCell>{item.supplier ?? 'N/A'}</TableCell>
-                    <TableCell>
-                      <Typography
-                        sx={{
-                          px: theme.spacing(2), py: theme.spacing(0.5),
-                          borderRadius: 999,
-                          display: 'inline-block',
-                          bgcolor: item.status === 'Available' ? theme.palette.success.light : theme.palette.error.light,
-                          color: item.status === 'Available' ? theme.palette.success.dark : theme.palette.error.dark,
-                          fontSize: '0.8rem',
-                          fontWeight: 'medium'
+                    {!isMobile && <TableCell>{item.supplier ?? 'N/A'}</TableCell>}
+                    {!isMobile && (
+                      <TableCell>
+                        <Typography
+                          sx={{
+                            px: theme.spacing(2), py: theme.spacing(0.5),
+                            borderRadius: 999,
+                            display: 'inline-block',
+                            bgcolor: item.status === 'Available' ? theme.palette.success.light : theme.palette.error.light,
+                            color: item.status === 'Available' ? theme.palette.success.dark : theme.palette.error.dark,
+                            fontSize: '0.8rem',
+                            fontWeight: 'medium'
                         }}
                       >
                         {item.status ?? 'N/A'}
                       </Typography>
                     </TableCell>
-                     <TableCell>{item.uom ?? 'N/A'}</TableCell>
-                     <TableCell>{item.remarks ?? 'N/A'}</TableCell>
+                    )}
+                     {!isMobile && <TableCell>{item.uom ?? 'N/A'}</TableCell>}
+                     {!isMobile && <TableCell>{item.remarks ?? 'N/A'}</TableCell>}
                     <TableCell align="center">
                       <Stack direction="row" spacing={theme.spacing(0.5)} justifyContent="center">
                         <IconButton
@@ -614,7 +637,8 @@ const handleSaveItem = async (formData) => { // 'formData' here is the data obje
                 ))
               ) : (
                  <TableRow>
-                   <TableCell colSpan={11} align="center" sx={{ py: theme.spacing(3) }}>
+                   {/* Adjust colspan based on visible columns */}
+                   <TableCell colSpan={isMobile ? 4 : 11} align="center" sx={{ py: theme.spacing(3) }}>
                      No items found matching the criteria.
                    </TableCell>
                  </TableRow>
@@ -627,6 +651,7 @@ const handleSaveItem = async (formData) => { // 'formData' here is the data obje
       {/* Render components that appear as overlays (Modals) */}
 
       {/* Delete Confirmation Dialog */}
+      {/* Material UI Dialog is generally responsive, but you can add `fullScreen={isMobile}` if needed */}
       <DeleteConfirmationDialog
         open={openConfirm}
         onClose={handleCancelDelete}
@@ -634,9 +659,11 @@ const handleSaveItem = async (formData) => { // 'formData' here is the data obje
         itemId={selectedItemId}
         loading={deleteLoading}
         error={deleteError}
+        // fullScreen={isMobile} // Optional: make dialog full screen on mobile
       />
 
       {/* Stock Form (for Add/Edit) */}
+      {/* Material UI Dialog is generally responsive, but you can add `fullScreen={isMobile}` if needed */}
       <StockForm
           open={openForm}
           onClose={handleCancelForm}
@@ -644,30 +671,32 @@ const handleSaveItem = async (formData) => { // 'formData' here is the data obje
           initialData={itemToEdit}
           loading={saveLoading}
           error={saveError}
+          // fullScreen={isMobile} // Optional: make dialog full screen on mobile
       />
 
       {/* --- Incoming Goods Form (Already a Component) --- */}
+      {/* Material UI Dialog is generally responsive, but you can add `fullScreen={isMobile}` if needed */}
       <IncomingGoodsForm
           open={openIncomingForm}
           onClose={() => setOpenIncomingForm(false)} // Simple close handler
           onSubmit={handleProcessIncoming} // Handler to process the incoming transaction
           loading={transactionLoading} // Use transaction loading state
           error={transactionError} // Use transaction error state
-          // You might need to pass the list of current items to the form
-          // so the user can select which item the transaction applies to.
-          stockItems={items}
+          stockItems={items} // Pass the list of current items for selection
+          // fullScreen={isMobile} // Optional: make dialog full screen on mobile
       />
       {/* --- End Incoming --- */}
 
       {/* --- Outgoing Goods Form (Already a Component) --- */}
+      {/* Material UI Dialog is generally responsive, but you can add `fullScreen={isMobile}` if needed */}
       <OutgoingGoodsForm
           open={openOutgoingForm}
           onClose={() => setOpenOutgoingForm(false)} // Simple close handler
           onSubmit={handleProcessOutgoing} // Handler to process the outgoing transaction
           loading={transactionLoading} // Use transaction loading state
           error={transactionError} // Use transaction error state
-          // Pass the list of current items here too for selection
-          stockItems={items}
+          stockItems={items} // Pass the list of current items here too for selection
+          // fullScreen={isMobile} // Optional: make dialog full screen on mobile
       />
       {/* --- End Outgoing --- */}
 

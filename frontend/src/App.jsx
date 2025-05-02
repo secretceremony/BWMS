@@ -5,7 +5,7 @@ import axios from 'axios';
 // --- Theme Setup ---
 // Import createTheme and your theme options
 import { ThemeProvider, createTheme, Box, CircularProgress, Typography } from '@mui/material';
-import themeOptions from './theme'; // Ensure this path is correct
+import themeOptions from './theme'; 
 
 // Create the theme instance outside the component
 const appTheme = createTheme(themeOptions);
@@ -38,11 +38,11 @@ import Dashboard from './pages/Dashboard';
 import NotFound from './pages/NotFound';
 import Profile from './pages/Profile';
 import StockManagement from './pages/StockManagement';
-import Report from './pages/Reports'; // Assuming component name is Report, file is Reports.jsx
+import Report from './pages/Reports';
 import History from './pages/History';
 
 // --- Components ---
-import Layout from './components/Layout'; // Assuming Layout is within components folder
+import Layout from './components/Layout'; 
 
 
 // --- Helper for conditional logging (optional) ---
@@ -62,8 +62,8 @@ const ProtectedRoute = ({ isAuthenticated, children }) => {
 
 // --- App Component ---
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false); 
+  const [user, setUser] = useState(null); 
   const [loading, setLoading] = useState(false); // Loading state for login/logout actions
   const [initialLoading, setInitialLoading] = useState(true); // Loading state for initial session check
   const [loginError, setLoginError] = useState(''); // Renamed 'error' to 'loginError' for clarity
@@ -73,8 +73,6 @@ function App() {
   // --- Effect Hook for Initial Session Check ---
   useEffect(() => {
     if (!API_BASE_URL) {
-        // This case should ideally not be hit due to determineApiBaseUrl,
-        // but acts as a final safeguard.
         setConfigError("API Base URL is not configured!");
         setInitialLoading(false);
         return;
@@ -270,9 +268,6 @@ function App() {
 
   // --- Main Application Render ---
   return (
-    // Recommended: Wrap your entire App component with ThemeProvider in your entry file (main.jsx/index.jsx)
-    // If you cannot do that, uncomment the <ThemeProvider theme={appTheme}> wrapper below.
-    // <ThemeProvider theme={appTheme}>
       <Router>
         <Routes>
           {/* Login Route */}

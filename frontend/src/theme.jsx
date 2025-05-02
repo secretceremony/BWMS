@@ -1,5 +1,3 @@
-// Corrected ThemeOptions.js
-
 const themeOptions = {
     palette: {
       mode: 'light',
@@ -24,5 +22,4 @@ const themeOptions = {
     },
   };
   
-  // Change the export name to match the variable name
   export default themeOptions;

@@ -1,18 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import {
-  Box,
-  Button,
-  TextField,
-  Typography,
-  Container,
-  Paper,
-  Grid,
-  CircularProgress,
-  Alert,
-  Tabs,
-  Tab,
-  Divider
+  Box, Button, TextField, Typography, Container, Paper,
+  Grid, CircularProgress, Alert, Tabs, Tab, Divider
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
@@ -162,9 +152,6 @@ const Login = ({ onLogin, error, loading }) => {
         <Box sx={{ mb: 3, textAlign: 'center' }}>
           <Typography variant="h4" component="h1" gutterBottom>
             BWMS
-          </Typography>
-          <Typography variant="subtitle1" color="text.secondary">
-            Bulk Water Management System
           </Typography>
         </Box>
         
