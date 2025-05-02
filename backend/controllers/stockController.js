@@ -154,59 +154,53 @@ const getStockById = async (req, res) => {
     }
 };
 
-// Menambah data stock baru (Handles custom ID)
+// Menambah data stock baru (Backend Generates ID)
 const createStock = async (req, res) => {
-    // Expect custom ID in the body for creation
-    const { id, name, part_number, category, quantity, supplier, status, uom, remarks, price } = req.body; // Added id and price
-
-    try {
-        // Basic validation - Ensure custom ID is provided for creation
-        if (!id || !name || part_number === undefined || part_number === null || !category || quantity === undefined || quantity === null || !supplier || !status || !uom || price === undefined || price === null) {
-            return res.status(400).json({ error: "Field yang dibutuhkan (id, name, part_number, category, quantity, supplier, status, uom, price) tidak lengkap." });
-        }
-
-        // Optional: Add format validation for the custom ID (e.g., regex AP001)
-        // if (!/^[A-Z]{2}\d{3}$/.test(id)) {
-        //      return res.status(400).json({ error: "Item ID must be in the format XXNNN (e.g., AP001)." });
-        // }
-
-
-        // Sesuaikan query INSERT dan kolom, termasuk ID
-        const result = await pool.query(
-            'INSERT INTO stock (id, name, part_number, category, quantity, supplier, status, uom, remarks, price) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, name, part_number, category, quantity, supplier, status, uom, remarks, price',
-            [id, name, part_number, category, quantity, supplier, status, uom, remarks, price]
-        );
-        const newItem = result.rows[0];
-
-         // Mapping kolom quantity ke stock untuk response
-        const responseItem = {
-            ...newItem,
-            stock: newItem.quantity
-        };
-
-        res.status(201).json(responseItem); // 201 Created
-
-    } catch (err) {
-        console.error('Error creating stock:', err.message || err);
-        // Tangani error UNIQUE violation jika id atau part_number harus unik
-        if (err.code === '23505') { // Kode error PostgreSQL untuk unique_violation
-             // Determine which constraint was violated based on the error detail
-             if (err.constraint === 'stock_pkey') { // Assuming 'stock_pkey' is the primary key constraint name for 'id'
-                 return res.status(409).json({ error: `Item ID '${id}' already exists.` });
-             }
-             // Assuming you have a unique constraint on part_number, e.g., 'stock_part_number_key'
-             if (err.constraint === 'stock_part_number_key') {
-                 return res.status(409).json({ error: `Part Number '${part_number}' already exists.` });
-             }
-             // Generic unique violation error if constraint name is unknown
-             return res.status(409).json({ error: 'Duplicate entry violates unique constraint.' });
-        }
-        res.status(500).json({ error: 'Terjadi kesalahan server saat menambah data stock' });
-    }
-};
+    console.log("Received data for createStock:", req.body); // <-- Add this line
+        // Expect data *without* ID in the body for creation
+        // Removed 'id' from destructuring
+        const { name, part_number, category, quantity, supplier, status, uom, remarks, price } = req.body; // Added price
+    
+        try {
+            // Basic validation - Removed '!id' check
+            if (!name || part_number === undefined || part_number === null || !category || quantity === undefined || quantity === null || !supplier || !status || !uom || price === undefined || price === null) {
+                // Adjusted error message slightly to reflect that ID is not expected in body for creation
+                return res.status(400).json({ error: "Field yang dibutuhkan (name, part_number, category, quantity, supplier, status, uom, price) tidak lengkap." });
+            }
+    
+            // Sesuaikan query INSERT dan kolom - Removed 'id' column
+            const result = await pool.query(
+                'INSERT INTO stock (name, part_number, category, quantity, supplier, status, uom, remarks, price) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, name, part_number, category, quantity, supplier, status, uom, remarks, price', // Added price and RETURNING id
+                [name, part_number, category, quantity, supplier, status, uom, remarks, price] // Removed id from parameter list
+            );
+            const newItem = result.rows[0];
+    
+            // Mapping kolom quantity ke stock untuk response
+            const responseItem = {
+                ...newItem,
+                stock: newItem.quantity
+            };
+    
+            res.status(201).json(responseItem); // 201 Created
+    
+        } catch (err) {
+            console.error('Error creating stock:', err.message || err);
+            // Tangani error UNIQUE violation jika part_number harus unik
+            if (err.code === '23505') { // Kode error PostgreSQL untuk unique_violation
+                 // Check constraint name specifically for part_number if needed
+                 if (err.constraint === 'stock_part_number_key') { // Assuming this is the part_number unique constraint name
+                     return res.status(409).json({ error: `Part Number '${part_number}' already exists.` });
+                 }
+                 // Fallback for other unique constraints if any
+                 return res.status(409).json({ error: 'Duplicate entry violates unique constraint.' });
+            }
+            res.status(500).json({ error: 'Terjadi kesalahan server saat menambah data stock' });
+        }
+    };
 
 // Mengupdate data stock yang ada (Full update, not just quantity)
 const updateStock = async (req, res) => {
+    console.log("Received data for updateStock:", req.body); // <-- Add this line
     const { id } = req.params;
     // Sesuaikan kolom dengan body request
     const { name, part_number, category, quantity, supplier, status, uom, remarks, price } = req.body; // Added price

@@ -26,7 +26,7 @@ import StockFiltersAndSortControls from '../components/StockFiltersAndSortContro
 // Import delete confirmation and form modals
 import DeleteConfirmationDialog from '../components/DeleteConfirmationDialog'; // Adjust path
 import StockForm from '../components/StockForm'; // Import form component - Adjust path
-// Import the new Incoming/Outgoing forms
+// Import the new Incoming/Outgoing forms (already components!)
 import IncomingGoodsForm from '../components/IncomingGoodsForm'; // Adjust path
 import OutgoingGoodsForm from '../components/OutgoingGoodsForm'; // Adjust path
 
@@ -108,7 +108,8 @@ const StockManagement = () => {
     if (!token) {
         setError("Authentication token not found. Please log in.");
         setLoading(false);
-        // Consider redirecting to login page here
+        // Consider redirecting to login page here, or show a login prompt
+        navigate('/login'); // Example redirect
         return;
     }
 
@@ -127,6 +128,8 @@ const StockManagement = () => {
            if (response.status === 401 || response.status === 403) {
                setError("Authentication error: Please login again.");
                // Optional: Clear token and redirect
+               localStorage.removeItem('token');
+               navigate('/login');
            } else {
                setError(`Failed to fetch items: ${errorBody.error || errorBody.message || response.statusText}`);
            }
@@ -150,9 +153,11 @@ const StockManagement = () => {
     if (API_URL) {
         fetchItems();
     } else {
+        // Handle case where API_URL is not set on mount
+        setError("Application configuration error: API URL is not set.");
         setLoading(false);
     }
-  }, [filterCategory, filterSupplier, sortOrder, searchQuery]);
+  }, [filterCategory, filterSupplier, sortOrder, searchQuery, API_URL]); // Added API_URL dependency for safety
 
 
   // --- Handler for Delete Confirmation Modal and Delete Action ---
@@ -181,6 +186,7 @@ const StockManagement = () => {
       if (!token) {
           setDeleteError("Authentication token missing. Cannot delete.");
           setDeleteLoading(false);
+          navigate('/login'); // Redirect to login
           return;
       }
 
@@ -196,6 +202,7 @@ const StockManagement = () => {
           if (!response.ok) {
               const errorData = await response.json().catch(() => ({}));
               console.error("Delete API error response:", errorData);
+              // Use the backend error message if available
               throw new Error(errorData.message || errorData.error || response.statusText);
           }
 
@@ -214,105 +221,88 @@ const StockManagement = () => {
 
   // --- Handler for Form Modal (Add/Edit) and Save Action ---
   const handleAddItem = () => {
-       setItemToEdit(null);
-       setSaveError(null);
+       setItemToEdit(null); // Set to null for add mode
+       setSaveError(null); // Clear previous save errors
        setOpenForm(true);
     };
 
   const handleEdit = (id) => {
     const item = items.find(item => item.id === id);
     if (item) {
-        setItemToEdit(item);
-        setSaveError(null);
+        setItemToEdit(item); // Set the item for edit mode
+        setSaveError(null); // Clear previous save errors
         setOpenForm(true);
     } else {
         console.error("Item with ID not found for editing:", id);
-        // setError(`Error: Item with ID ${id} not found.`); // Optional: show error on main page
+        setError(`Error: Item with ID ${id} not found for editing.`); // Show error on main page
     }
   };
 
   const handleCancelForm = () => {
       setOpenForm(false);
-      setItemToEdit(null);
-      setSaveError(null);
+      setItemToEdit(null); // Reset itemToEdit on close
+      setSaveError(null); // Clear save errors on close
   };
 
-  const handleSaveItem = async (formData) => {
-    if (!API_URL) {
-        setSaveError("Application configuration error: API URL is not set.");
-        return;
-    }
-
-      setSaveLoading(true);
-      setSaveError(null);
-
-      const token = getAuthToken();
-      if (!token) {
-          setSaveError("Authentication token missing. Cannot save.");
-          setSaveLoading(false);
-          return;
-      }
-
-      // Prepare dataToSend - formData already includes 'id' if editing
-      const dataToSend = { ...formData };
-
-      // Map 'stock' to 'quantity' and ensure numbers are numbers
-      if (dataToSend.hasOwnProperty('stock')) {
-          dataToSend.quantity = Number(dataToSend.stock);
-          delete dataToSend.stock;
-      }
-      if (dataToSend.hasOwnProperty('price')) {
-          dataToSend.price = Number(dataToSend.price);
-      }
-      // Ensure part_number is sent as a number if backend expects it
-      if (dataToSend.hasOwnProperty('part_number')) {
-          dataToSend.part_number = Number(dataToSend.part_number);
-      }
-
-
-      const method = dataToSend.id ? 'PUT' : 'POST';
-      const url = dataToSend.id ? `${API_URL}/api/stock/${dataToSend.id}` : `${API_URL}/api/stock`;
-
-      // For POST requests (add mode), remove the ID from the request body if it exists
-      // This is crucial if your backend auto-generates/validates the custom ID from the body
-      if (method === 'POST' && dataToSend.hasOwnProperty('id')) {
-          // If backend expects custom ID in body for POST, DO NOT delete it here.
-          // If backend expects ID only in URL for PUT and ignores body ID, delete it for PUT too.
-          // Assuming backend expects custom ID in body for POST: do nothing here.
-      }
-
-
-      console.log('Saving data:', dataToSend);
-      console.log('Method:', method, 'URL:', url);
-
-      try {
-          const response = await fetch(url, {
-              method: method,
-              headers: {
-                 'Authorization': `Bearer ${token}`,
-                 'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(dataToSend)
-          });
-
-          if (!response.ok) {
-              const errorData = await response.json().catch(() => ({}));
-              console.error("Save API error response:", errorData);
-              throw new Error(errorData.message || errorData.error || response.statusText);
-          }
-
-          fetchItems(); // Refresh data
-
-          handleCancelForm(); // Close modal and reset state
-
-      } catch (error) {
-          console.error("Saving item failed:", error);
-          setSaveError(`Gagal menyimpan data: ${error.message}`);
-      } finally {
-          setSaveLoading(false);
-      }
-  };
-
+const handleSaveItem = async (formData) => { // 'formData' here is the data object ready for the backend
+        if (!API_URL) {
+          setSaveError("Application configuration error: API URL is not set.");
+          return;
+        }
+    
+        setSaveLoading(true);
+        setSaveError(null);
+    
+        const token = getAuthToken();
+        if (!token) {
+          setSaveError("Authentication token missing. Cannot save.");
+          setSaveLoading(false);
+          navigate('/login');
+          return;
+        }
+    
+        // *** REMOVE the block that was doing the redundant mapping and deletion ***
+        // const dataToSend = {
+        //   ...formData,
+        //   quantity: formData.stock, // This was setting quantity to undefined
+        // };
+        // delete dataToSend.stock; // This was redundant
+    
+        // Use the data directly as received from StockForm
+        const dataToSend = formData; // <-- Use the data object directly
+    
+        console.log("Data being sent to backend:", JSON.stringify(dataToSend)); // Keep this log for verification
+    
+        const method = dataToSend.id ? 'PUT' : 'POST';
+        const url = dataToSend.id ? `${API_URL}/api/stock/${dataToSend.id}` : `${API_URL}/api/stock`;
+    
+        try {
+          const response = await fetch(url, {
+            method: method,
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dataToSend), // Send the correctly prepared data
+          });
+    
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || errorData.error || response.statusText);
+          }
+    
+          // Success
+          fetchItems(); // Refresh data after successful save
+          handleCancelForm(); // Close the modal
+    
+        } catch (error) {
+          console.error("Saving item failed:", error);
+          setSaveError(`Gagal menyimpan data: ${error.message}`);
+        } finally {
+          setSaveLoading(false);
+        }
+    };
+  
   // --- Handlers to open Incoming/Outgoing Modals ---
   const handleOpenIncomingForm = () => {
       setTransactionError(null); // Reset transaction error
@@ -326,6 +316,7 @@ const StockManagement = () => {
 
   // --- Handlers to process Incoming/Outgoing Transactions ---
   // These will be passed to the onSubmit prop of the new forms
+  // transactionData for Incoming/Outgoing should include item ID, quantity, date, remarks, etc.
   const handleProcessIncoming = async (transactionData) => {
     if (!API_URL) {
         setTransactionError("Application configuration error: API URL is not set.");
@@ -339,7 +330,15 @@ const StockManagement = () => {
     if (!token) {
         setTransactionError("Authentication token missing. Cannot record transaction.");
         setTransactionLoading(false);
+        navigate('/login'); // Redirect
         return;
+    }
+
+    // Optional: Client-side validation for transactionData (e.g., itemId, quantity)
+    if (!transactionData.itemId || !transactionData.quantity || transactionData.quantity <= 0) {
+      setTransactionError("Item ID and quantity must be provided and quantity must be positive.");
+      setTransactionLoading(false);
+      return;
     }
 
     try {
@@ -362,7 +361,9 @@ const StockManagement = () => {
         // If successful:
         fetchItems(); // Refresh the stock list to show updated quantity
         setOpenIncomingForm(false); // Close the modal
-        navigate('/history'); // Navigate to the History page
+        //navigate('/history'); // Navigate to the History page - uncomment if desired
+        console.log("Incoming transaction recorded successfully.");
+
 
     } catch (error) {
         console.error("Recording incoming goods failed:", error);
@@ -385,7 +386,15 @@ const StockManagement = () => {
     if (!token) {
         setTransactionError("Authentication token missing. Cannot record transaction.");
         setTransactionLoading(false);
+        navigate('/login'); // Redirect
         return;
+    }
+
+    // Optional: Client-side validation for transactionData
+    if (!transactionData.itemId || !transactionData.quantity || transactionData.quantity <= 0) {
+      setTransactionError("Item ID and quantity must be provided and quantity must be positive.");
+      setTransactionLoading(false);
+      return;
     }
 
     try {
@@ -402,17 +411,20 @@ const StockManagement = () => {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             console.error("Outgoing API error response:", errorData);
-            // Check for specific errors like insufficient stock (if backend sends a specific status/message)
-            if (response.status === 400 && errorData.error === 'Insufficient stock') {
-                throw new Error("Insufficient stock for this outgoing transaction.");
-            }
+            // Check for specific errors like insufficient stock (if backend sends a specific status/message)
+            if (response.status === 400 && errorData.error === 'Insufficient stock') {
+                throw new Error("Insufficient stock for this outgoing transaction.");
+            }
+            // Use the backend error message if available
             throw new Error(errorData.message || errorData.error || response.statusText);
         }
 
         // If successful:
         fetchItems(); // Refresh the stock list to show updated quantity
         setOpenOutgoingForm(false); // Close the modal
-        navigate('/history'); // Navigate to the History page
+        //navigate('/history'); // Navigate to the History page - uncomment if desired
+        console.log("Outgoing transaction recorded successfully.");
+
 
     } catch (error) {
         console.error("Recording outgoing goods failed:", error);
@@ -462,7 +474,7 @@ const StockManagement = () => {
       </Typography>
 
       {/* Top Buttons (Add, Incoming, Outgoing) */}
-      <Stack direction="row" spacing={theme.spacing(2)} mb={theme.spacing(3)} flexWrap="wrap">
+      <Stack direction="row" spacing={theme.spacing(2)} mb={theme.spacing(3)} flexWrap="wrap" alignItems="center">
         {/* "Add Item" Button */}
         <Button
           variant="contained"
@@ -556,11 +568,12 @@ const StockManagement = () => {
                     <TableCell>{item.part_number ?? 'N/A'}</TableCell>
                     <TableCell>{item.category ?? 'N/A'}</TableCell>
                     <TableCell>
-                        {item.price !== undefined && item.price !== null
-                            ? `Rp ${Number(item.price).toLocaleString('id-ID')}`
-                            : 'N/A'}
-                    </TableCell>
-                    <TableCell>{item.stock ?? 'N/A'}</TableCell>
+                        {item.price !== undefined && item.price !== null
+                            ? `Rp ${Number(item.price).toLocaleString('id-ID')}`
+                            : 'N/A'}
+                    </TableCell>
+                    {/* Display backend's 'quantity' as 'Stock' for the user */}
+                    <TableCell>{item.quantity ?? 'N/A'}</TableCell>
                     <TableCell>{item.supplier ?? 'N/A'}</TableCell>
                     <TableCell>
                       <Typography
@@ -633,25 +646,30 @@ const StockManagement = () => {
           error={saveError}
       />
 
-      {/* --- New: Incoming Goods Form --- */}
+      {/* --- Incoming Goods Form (Already a Component) --- */}
       <IncomingGoodsForm
           open={openIncomingForm}
           onClose={() => setOpenIncomingForm(false)} // Simple close handler
           onSubmit={handleProcessIncoming} // Handler to process the incoming transaction
           loading={transactionLoading} // Use transaction loading state
           error={transactionError} // Use transaction error state
+          // You might need to pass the list of current items to the form
+          // so the user can select which item the transaction applies to.
+          stockItems={items}
       />
-      {/* --- End New --- */}
+      {/* --- End Incoming --- */}
 
-      {/* --- New: Outgoing Goods Form --- */}
+      {/* --- Outgoing Goods Form (Already a Component) --- */}
       <OutgoingGoodsForm
           open={openOutgoingForm}
           onClose={() => setOpenOutgoingForm(false)} // Simple close handler
           onSubmit={handleProcessOutgoing} // Handler to process the outgoing transaction
           loading={transactionLoading} // Use transaction loading state
           error={transactionError} // Use transaction error state
+          // Pass the list of current items here too for selection
+          stockItems={items}
       />
-      {/* --- End New --- */}
+      {/* --- End Outgoing --- */}
 
     </Box>
   );
