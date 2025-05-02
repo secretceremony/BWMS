@@ -173,7 +173,7 @@ const History = () => {
                 >
                   {/* Display transaction details */}
                   <Typography variant="subtitle1" fontWeight="bold">
-                    {`${record.transaction_type === 'incoming' ? 'Incoming' : 'Outgoing'} - Item ID: ${record.item_id}`}
+                    {`${record.transaction_type === 'incoming' ? 'Incoming' : 'Outgoing'} - Item Name: ${record.item_id}`} 
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Quantity: {record.quantity_change}
