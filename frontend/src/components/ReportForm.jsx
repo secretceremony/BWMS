@@ -14,7 +14,11 @@ import {
   CircularProgress,
   Typography,
   Box,
-  useTheme
+  useTheme,
+  Divider,
+  FormHelperText,
+  Autocomplete,
+  Chip
 } from '@mui/material';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
@@ -36,14 +40,33 @@ const ReportForm = ({
     itemId: '',
     transactionType: 'incoming', // default ke 'incoming'
     quantity: '',
+    unitPrice: '',
+    totalValue: '',
+    source: '',  // supplier/customer
+    documentRef: '', // referensi dokumen (nomor PO, nomor surat jalan, dsb)
+    location: '', // lokasi penyimpanan
     remarks: '',
     transactionDate: new Date().toISOString().split('T')[0],
+    categoryTags: [], // tag kategori untuk pengelompokan
   });
 
   const [stockItems, setStockItems] = useState([]);
+  const [suppliers, setSuppliers] = useState([
+    { id: 1, name: 'PT Supplier Utama' }, 
+    { id: 2, name: 'CV Mitra Sejahtera' },
+    { id: 3, name: 'UD Makmur Jaya' }
+  ]); // Sample data, idealnya diambil dari API
+  const [locations, setLocations] = useState([
+    'Gudang Utama', 'Gudang B', 'Rak Depan', 'Rak Belakang', 'Lemari Khusus'
+  ]); // Sample data
+  const [categories, setCategories] = useState([
+    'Elektronik', 'ATK', 'Furniture', 'Peralatan', 'Bahan Baku', 'Produk Jadi', 'Lain-lain'
+  ]); // Sample data
+  
   const [itemsLoading, setItemsLoading] = useState(true);
   const [itemsError, setItemsError] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
+  const [selectedItem, setSelectedItem] = useState(null);
 
   // Reset form saat dialog ditutup
   const resetForm = () => {
@@ -51,11 +74,18 @@ const ReportForm = ({
       itemId: '',
       transactionType: 'incoming',
       quantity: '',
+      unitPrice: '',
+      totalValue: '',
+      source: '',
+      documentRef: '',
+      location: '',
       remarks: '',
       transactionDate: new Date().toISOString().split('T')[0],
+      categoryTags: [],
     });
     setValidationErrors({});
     setItemsError(null);
+    setSelectedItem(null);
   };
 
   // Mengisi form dengan data edit jika dalam mode edit
@@ -65,13 +95,25 @@ const ReportForm = ({
         itemId: editData.item_id || '',
         transactionType: editData.jenis === 'Stock In' ? 'incoming' : 'outgoing',
         quantity: editData.quantity || '',
+        unitPrice: editData.unitPrice || '',
+        totalValue: editData.totalValue || '',
+        source: editData.source || '',
+        documentRef: editData.documentRef || '',
+        location: editData.location || '',
         remarks: editData.remarks || '',
         transactionDate: editData.tanggal || new Date().toISOString().split('T')[0],
+        categoryTags: editData.categoryTags || [],
       });
+      
+      // Set selected item jika tersedia
+      if (editData.item_id) {
+        const item = stockItems.find(item => item.id === editData.item_id);
+        if (item) setSelectedItem(item);
+      }
     } else if (open) {
       resetForm();
     }
-  }, [isEdit, editData, open]);
+  }, [isEdit, editData, open, stockItems]);
 
   // Mengambil data items dari API
   useEffect(() => {
@@ -123,11 +165,59 @@ const ReportForm = ({
   // Handler perubahan input
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+    
+    // Khusus untuk nilai quantity atau unitPrice, update totalValue
+    if (name === 'quantity' || name === 'unitPrice') {
+      const newFormData = { 
+        ...formData, 
+        [name]: value 
+      };
+      
+      // Jika quantity dan unitPrice keduanya ada, hitung totalValue
+      if (newFormData.quantity && newFormData.unitPrice) {
+        const qty = parseFloat(newFormData.quantity);
+        const price = parseFloat(newFormData.unitPrice);
+        if (!isNaN(qty) && !isNaN(price)) {
+          newFormData.totalValue = (qty * price).toFixed(2);
+        }
+      }
+      
+      setFormData(newFormData);
+    } else {
+      setFormData((prevData) => ({
+        ...prevData,
+        [name]: value,
+      }));
+    }
+    
     setValidationErrors((prevErrors) => ({ ...prevErrors, [name]: '' }));
+  };
+  
+  // Handler untuk Autocomplete item
+  const handleItemChange = (event, newValue) => {
+    setSelectedItem(newValue);
+    if (newValue) {
+      setFormData(prev => ({
+        ...prev,
+        itemId: newValue.id,
+        unitPrice: newValue.price || ''
+      }));
+      setValidationErrors(prev => ({ ...prev, itemId: '' }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        itemId: '',
+        unitPrice: ''
+      }));
+    }
+  };
+  
+  // Handler untuk kategori tags
+  const handleTagsChange = (event, newValue) => {
+    setFormData(prev => ({
+      ...prev,
+      categoryTags: newValue
+    }));
   };
 
   // Validasi form
@@ -139,6 +229,21 @@ const ReportForm = ({
       errors.quantity = 'Kuantitas harus berupa angka positif.';
     }
     if (!formData.transactionDate) errors.transactionDate = 'Tanggal transaksi diperlukan.';
+
+    // Validasi unitPrice jika diisi
+    if (formData.unitPrice && (isNaN(Number(formData.unitPrice)) || Number(formData.unitPrice) < 0)) {
+      errors.unitPrice = 'Harga satuan harus berupa angka positif.';
+    }
+    
+    // Untuk transaksi incoming, source seharusnya supplier
+    if (formData.transactionType === 'incoming' && !formData.source) {
+      errors.source = 'Supplier diperlukan untuk transaksi barang masuk.';
+    }
+    
+    // Untuk transaksi outgoing, location seharusnya diisi
+    if (formData.transactionType === 'outgoing' && !formData.location) {
+      errors.location = 'Lokasi diperlukan untuk transaksi barang keluar.';
+    }
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -152,8 +257,14 @@ const ReportForm = ({
     const dataToSubmit = {
       itemId: formData.itemId,
       quantity: Number(formData.quantity),
+      unitPrice: formData.unitPrice ? Number(formData.unitPrice) : undefined,
+      totalValue: formData.totalValue ? Number(formData.totalValue) : undefined,
+      source: formData.source,
+      documentRef: formData.documentRef,
+      location: formData.location,
       remarks: formData.remarks,
       transactionDate: formData.transactionDate,
+      categoryTags: formData.categoryTags,
     };
 
     // Kirim data ke parent component
@@ -161,46 +272,22 @@ const ReportForm = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>{isEdit ? 'Edit Laporan' : 'Tambah Laporan Baru'}</DialogTitle>
       <DialogContent dividers sx={{ padding: theme.spacing(3) }}>
         <Box component="form" onSubmit={handleSubmit} noValidate>
           <Grid container spacing={theme.spacing(2)}>
-            {/* Item Selection */}
             <Grid item xs={12}>
-              <FormControl fullWidth required error={!!validationErrors.itemId}>
-                <InputLabel shrink>Pilih Item</InputLabel>
-                {itemsLoading ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-                    <CircularProgress size={20} sx={{ mr: 1 }} />
-                    <Typography variant="body2" color="text.secondary">Memuat item...</Typography>
-                  </Box>
-                ) : itemsError ? (
-                  <Typography variant="body2" color="error" sx={{ mt: 2 }}>{itemsError}</Typography>
-                ) : (
-                  <Select
-                    name="itemId"
-                    value={formData.itemId}
-                    onChange={handleChange}
-                    displayEmpty
-                    inputProps={{ 'aria-label': 'Pilih Item' }}
-                    label="Pilih Item"
-                    sx={{ mt: 1 }}
-                  >
-                    <MenuItem value="" disabled>Pilih Item</MenuItem>
-                    {Array.isArray(stockItems) && stockItems.map(item => (
-                      <MenuItem key={item.id} value={item.id}>{`${item.id} - ${item.name}`}</MenuItem>
-                    ))}
-                  </Select>
-                )}
-                <Typography variant="caption" color="error">{validationErrors.itemId}</Typography>
-              </FormControl>
+              <Typography variant="subtitle2" gutterBottom color="primary">
+                Informasi Dasar Transaksi
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
             </Grid>
-
+            
             {/* Transaction Type */}
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <FormControl fullWidth required error={!!validationErrors.transactionType}>
-                <InputLabel shrink>Tipe Transaksi</InputLabel>
+                <InputLabel>Tipe Transaksi</InputLabel>
                 <Select
                   name="transactionType"
                   value={formData.transactionType}
@@ -208,32 +295,14 @@ const ReportForm = ({
                   displayEmpty
                   inputProps={{ 'aria-label': 'Tipe Transaksi' }}
                   label="Tipe Transaksi"
-                  sx={{ mt: 1 }}
                 >
                   <MenuItem value="incoming">Barang Masuk (Stock In)</MenuItem>
                   <MenuItem value="outgoing">Barang Keluar (Stock Out)</MenuItem>
                 </Select>
-                <Typography variant="caption" color="error">{validationErrors.transactionType}</Typography>
+                <FormHelperText error>{validationErrors.transactionType}</FormHelperText>
               </FormControl>
             </Grid>
-
-            {/* Quantity */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Jumlah"
-                name="quantity"
-                value={formData.quantity}
-                onChange={handleChange}
-                fullWidth
-                required
-                type="number"
-                error={!!validationErrors.quantity}
-                helperText={validationErrors.quantity}
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ min: 1 }}
-              />
-            </Grid>
-
+            
             {/* Transaction Date */}
             <Grid item xs={12} sm={6}>
               <TextField
@@ -250,6 +319,167 @@ const ReportForm = ({
               />
             </Grid>
 
+            {/* Document Reference */}
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Referensi Dokumen"
+                name="documentRef"
+                value={formData.documentRef}
+                onChange={handleChange}
+                fullWidth
+                placeholder="Contoh: PO-2023-001, SJ-2023-001"
+                InputLabelProps={{ shrink: true }}
+                helperText="Nomor PO, Surat Jalan, atau dokumen lainnya"
+              />
+            </Grid>
+            
+            {/* Source/Supplier/Customer */}
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth error={!!validationErrors.source}>
+                <InputLabel>{formData.transactionType === 'incoming' ? 'Supplier' : 'Customer/Tujuan'}</InputLabel>
+                <Select
+                  name="source"
+                  value={formData.source}
+                  onChange={handleChange}
+                  displayEmpty
+                  label={formData.transactionType === 'incoming' ? 'Supplier' : 'Customer/Tujuan'}
+                >
+                  <MenuItem value="">-</MenuItem>
+                  {suppliers.map(supplier => (
+                    <MenuItem key={supplier.id} value={supplier.name}>{supplier.name}</MenuItem>
+                  ))}
+                </Select>
+                <FormHelperText error>{validationErrors.source}</FormHelperText>
+              </FormControl>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" gutterBottom color="primary" sx={{ mt: 2 }}>
+                Informasi Item & Kuantitas
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+            </Grid>
+           
+            {/* Item Selection - Using Autocomplete for better UX */}
+            <Grid item xs={12}>
+              <FormControl fullWidth required error={!!validationErrors.itemId}>
+                <Autocomplete
+                  options={stockItems}
+                  getOptionLabel={(option) => `${option.name} (${option.id})`}
+                  loading={itemsLoading}
+                  value={selectedItem}
+                  onChange={handleItemChange}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Pilih Item"
+                      required
+                      error={!!validationErrors.itemId}
+                      helperText={validationErrors.itemId}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  )}
+                />
+              </FormControl>
+            </Grid>
+
+            {/* Quantity */}
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Jumlah"
+                name="quantity"
+                value={formData.quantity}
+                onChange={handleChange}
+                fullWidth
+                required
+                type="number"
+                error={!!validationErrors.quantity}
+                helperText={validationErrors.quantity}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: 1 }}
+              />
+            </Grid>
+            
+            {/* Unit Price */}
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Harga Satuan"
+                name="unitPrice"
+                value={formData.unitPrice}
+                onChange={handleChange}
+                fullWidth
+                type="number"
+                error={!!validationErrors.unitPrice}
+                helperText={validationErrors.unitPrice || "Kosongkan jika tidak diketahui"}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: 0 }}
+              />
+            </Grid>
+            
+            {/* Total Value - Auto calculated but can be manually adjusted */}
+            <Grid item xs={12} sm={4}>
+              <TextField
+                label="Total Nilai"
+                name="totalValue"
+                value={formData.totalValue}
+                onChange={handleChange}
+                fullWidth
+                disabled={formData.unitPrice && formData.quantity}
+                InputLabelProps={{ shrink: true }}
+                helperText="Nilai dihitung otomatis"
+              />
+            </Grid>
+            
+            {/* Storage Location */}
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth error={!!validationErrors.location}>
+                <InputLabel>Lokasi Penyimpanan</InputLabel>
+                <Select
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  displayEmpty
+                  label="Lokasi Penyimpanan"
+                >
+                  <MenuItem value="">-</MenuItem>
+                  {locations.map((location, index) => (
+                    <MenuItem key={index} value={location}>{location}</MenuItem>
+                  ))}
+                </Select>
+                <FormHelperText error>{validationErrors.location}</FormHelperText>
+              </FormControl>
+            </Grid>
+            
+            {/* Category Tags - Multiple selection */}
+            <Grid item xs={12} sm={6}>
+              <Autocomplete
+                multiple
+                options={categories}
+                value={formData.categoryTags}
+                onChange={handleTagsChange}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      label={option}
+                      {...getTagProps({ index })}
+                      color="primary"
+                      variant="outlined"
+                      size="small"
+                    />
+                  ))
+                }
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Kategori"
+                    placeholder="Pilih kategori"
+                    helperText="Kategorisasi untuk keperluan analisis"
+                    fullWidth
+                  />
+                )}
+              />
+            </Grid>
+            
             {/* Remarks */}
             <Grid item xs={12}>
               <TextField
@@ -259,8 +489,9 @@ const ReportForm = ({
                 onChange={handleChange}
                 fullWidth
                 multiline
-                rows={2}
+                rows={3}
                 InputLabelProps={{ shrink: true }}
+                placeholder="Tambahkan keterangan atau catatan penting tentang transaksi ini"
               />
             </Grid>
           </Grid>
@@ -268,6 +499,11 @@ const ReportForm = ({
         {error && (
           <Box sx={{ mt: 2 }}>
             <Typography variant="body2" color="error">{error}</Typography>
+          </Box>
+        )}
+        {itemsError && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" color="error">{itemsError}</Typography>
           </Box>
         )}
       </DialogContent>
