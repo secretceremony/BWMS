@@ -1,43 +1,110 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import {
-  Box, Button, TextField, Typography, Container, Paper,
-  Grid, CircularProgress, Alert, Tabs, Tab, Divider
+  Box,
+  Button,
+  TextField,
+  Typography,
+  Container,
+  Paper,
+  Grid,
+  CircularProgress,
+  Alert,
+  IconButton,
+  InputAdornment,
+  Link
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import { styled } from '@mui/material/styles';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 // Tentukan API_BASE_URL berdasarkan variabel lingkungan
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-// Component TabPanel untuk menangani konten tab
-function TabPanel(props) {
-  const { children, value, index, ...other } = props;
+// Custom styling untuk komponen
+const LoginContainer = styled(Container)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: '100vh',
+  padding: theme.spacing(2)
+}));
 
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
+const LoginCard = styled(Paper)(({ theme }) => ({
+  width: '100%',
+  maxWidth: 500,
+  borderRadius: 16,
+  padding: theme.spacing(5, 3),
+  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.05)',
+  position: 'relative',
+  overflow: 'hidden'
+}));
+
+const AppTitle = styled(Typography)(({ theme }) => ({
+  fontWeight: 700,
+  color: '#005E46', // Warna hijau teal sesuai dengan gambar
+  textAlign: 'center',
+  marginBottom: theme.spacing(6),
+  fontSize: '2.5rem'
+}));
+
+const PageTitle = styled(Typography)(({ theme }) => ({
+  fontWeight: 600,
+  textAlign: 'center',
+  marginBottom: theme.spacing(4),
+  fontSize: '1.8rem'
+}));
+
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  marginBottom: theme.spacing(3),
+  '& .MuiOutlinedInput-root': {
+    backgroundColor: '#f5f8ff',
+    borderRadius: 8,
+    '&.Mui-focused': {
+      backgroundColor: '#ffffff'
+    }
+  },
+  '& .MuiInputLabel-root': {
+    fontWeight: 500
+  }
+}));
+
+const SubmitButton = styled(Button)(({ theme }) => ({
+  borderRadius: 8,
+  padding: theme.spacing(1.5),
+  fontWeight: 600,
+  fontSize: '1rem',
+  backgroundColor: '#005E46', // Warna hijau teal
+  '&:hover': {
+    backgroundColor: '#004D3A' // Sedikit lebih gelap saat hover
+  },
+  marginTop: theme.spacing(2),
+  marginBottom: theme.spacing(3)
+}));
+
+const RegisterLink = styled(Box)(({ theme }) => ({
+  textAlign: 'center',
+  margin: theme.spacing(2, 0),
+  '& .MuiLink-root': {
+    color: '#005E46',
+    fontWeight: 600,
+    textDecoration: 'none',
+    '&:hover': {
+      textDecoration: 'underline'
+    }
+  }
+}));
 
 // Login Component
 const Login = ({ onLogin, error, loading }) => {
-  const theme = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
-  // State untuk register
+  // State for register view
+  const [isRegisterView, setIsRegisterView] = useState(false);
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerUsername, setRegisterUsername] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
@@ -45,14 +112,26 @@ const Login = ({ onLogin, error, loading }) => {
   const [registerError, setRegisterError] = useState('');
   const [registerSuccess, setRegisterSuccess] = useState('');
   const [registerLoading, setRegisterLoading] = useState(false);
-  
-  // State untuk tab
-  const [tabValue, setTabValue] = useState(0);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Handler untuk perubahan tab
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
-    // Reset pesan error/sukses saat berganti tab
+  // Toggle password visibility
+  const handleClickShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const handleClickShowRegisterPassword = () => {
+    setShowRegisterPassword(!showRegisterPassword);
+  };
+
+  const handleClickShowConfirmPassword = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
+  // Switch between login and register views
+  const toggleView = () => {
+    setIsRegisterView(!isRegisterView);
+    // Reset forms and errors when switching views
     setLocalError('');
     setRegisterError('');
     setRegisterSuccess('');
@@ -122,9 +201,9 @@ const Login = ({ onLogin, error, loading }) => {
       setRegisterPassword('');
       setConfirmPassword('');
       
-      // Otomatis pindah ke tab login setelah 2 detik
+      // Otomatis pindah ke login view setelah 2 detik
       setTimeout(() => {
-        setTabValue(0);
+        setIsRegisterView(false);
         setEmail(registerEmail); // Isi otomatis email di form login
       }, 2000);
       
@@ -139,181 +218,214 @@ const Login = ({ onLogin, error, loading }) => {
   };
 
   return (
-    <Container component="main" maxWidth="sm">
-      <Paper 
-        elevation={3} 
-        sx={{ 
-          p: 2, 
-          mt: 8,
-          borderRadius: 2,
-          border: `1px solid ${theme.palette.divider}`,
-        }}
-      >
-        <Box sx={{ mb: 3, textAlign: 'center' }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            BWMS
-          </Typography>
-        </Box>
-        
-        {/* Tab Navigation */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs 
-            value={tabValue} 
-            onChange={handleTabChange} 
-            variant="fullWidth"
-          >
-            <Tab label="Login" />
-            <Tab label="Register" />
-          </Tabs>
-        </Box>
-        
-        {/* Login Tab */}
-        <TabPanel value={tabValue} index={0}>
-          <form onSubmit={handleLoginSubmit}>
-            <Grid container spacing={2}>
+    <LoginContainer maxWidth="sm">
+      <AppTitle variant="h1">
+        BiruniWMS
+      </AppTitle>
+      
+      <LoginCard elevation={3}>
+        {!isRegisterView ? (
+          // LOGIN VIEW
+          <>
+            <PageTitle variant="h2">
+              Welcome
+            </PageTitle>
+            
+            <form onSubmit={handleLoginSubmit}>
               {(error || localError) && (
-                <Grid item xs={12}>
-                  <Alert severity="error">{error || localError}</Alert>
-                </Grid>
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {error || localError}
+                </Alert>
               )}
               
-              <Grid item xs={12}>
-                <TextField
-                  variant="outlined"
-                  required
-                  fullWidth
-                  id="email"
-                  label="Email"
-                  name="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoFocus
-                />
-              </Grid>
+              <StyledTextField
+                variant="outlined"
+                required
+                fullWidth
+                id="email"
+                label="Email address"
+                name="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoFocus
+                InputProps={{
+                  sx: { py: 0.5 }
+                }}
+              />
               
-              <Grid item xs={12}>
-                <TextField
-                  variant="outlined"
-                  required
-                  fullWidth
-                  name="password"
-                  label="Password"
-                  type="password"
-                  id="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </Grid>
+              <StyledTextField
+                variant="outlined"
+                required
+                fullWidth
+                name="password"
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                InputProps={{
+                  sx: { py: 0.5 },
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={handleClickShowPassword}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
+              />
               
-              <Grid item xs={12}>
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  color="primary"
-                  disabled={loading}
-                  sx={{ py: 1.5 }}
-                >
-                  {loading ? <CircularProgress size={24} /> : 'Login'}
-                </Button>
-              </Grid>
-            </Grid>
-          </form>
-        </TabPanel>
-        
-        {/* Register Tab */}
-        <TabPanel value={tabValue} index={1}>
-          <form onSubmit={handleRegisterSubmit}>
-            <Grid container spacing={2}>
+              <SubmitButton
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={24} /> : 'Sign In'}
+              </SubmitButton>
+            </form>
+            
+            <RegisterLink>
+              <Typography variant="body1">
+                Don't have an account?
+                <Link component="button" onClick={toggleView} sx={{ ml: 1 }}>
+                  Register
+                </Link>
+              </Typography>
+            </RegisterLink>
+          </>
+        ) : (
+          // REGISTER VIEW
+          <>
+            <PageTitle variant="h2">
+              Create Account
+            </PageTitle>
+            
+            <form onSubmit={handleRegisterSubmit}>
               {registerError && (
-                <Grid item xs={12}>
-                  <Alert severity="error">{registerError}</Alert>
-                </Grid>
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {registerError}
+                </Alert>
               )}
               
               {registerSuccess && (
-                <Grid item xs={12}>
-                  <Alert severity="success">{registerSuccess}</Alert>
-                </Grid>
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  {registerSuccess}
+                </Alert>
               )}
               
-              <Grid item xs={12}>
-                <TextField
-                  variant="outlined"
-                  required
-                  fullWidth
-                  id="register-email"
-                  label="Email"
-                  name="email"
-                  autoComplete="email"
-                  value={registerEmail}
-                  onChange={(e) => setRegisterEmail(e.target.value)}
-                />
-              </Grid>
+              <StyledTextField
+                variant="outlined"
+                required
+                fullWidth
+                id="register-email"
+                label="Email"
+                name="email"
+                autoComplete="email"
+                value={registerEmail}
+                onChange={(e) => setRegisterEmail(e.target.value)}
+                InputProps={{
+                  sx: { py: 0.5 }
+                }}
+              />
               
-              <Grid item xs={12}>
-                <TextField
-                  variant="outlined"
-                  required
-                  fullWidth
-                  id="register-username"
-                  label="Username"
-                  name="username"
-                  autoComplete="username"
-                  value={registerUsername}
-                  onChange={(e) => setRegisterUsername(e.target.value)}
-                />
-              </Grid>
+              <StyledTextField
+                variant="outlined"
+                required
+                fullWidth
+                id="register-username"
+                label="Username"
+                name="username"
+                autoComplete="username"
+                value={registerUsername}
+                onChange={(e) => setRegisterUsername(e.target.value)}
+                InputProps={{
+                  sx: { py: 0.5 }
+                }}
+              />
               
-              <Grid item xs={12}>
-                <TextField
-                  variant="outlined"
-                  required
-                  fullWidth
-                  name="register-password"
-                  label="Password"
-                  type="password"
-                  id="register-password"
-                  autoComplete="new-password"
-                  value={registerPassword}
-                  onChange={(e) => setRegisterPassword(e.target.value)}
-                />
-              </Grid>
+              <StyledTextField
+                variant="outlined"
+                required
+                fullWidth
+                name="register-password"
+                label="Password"
+                type={showRegisterPassword ? 'text' : 'password'}
+                id="register-password"
+                autoComplete="new-password"
+                value={registerPassword}
+                onChange={(e) => setRegisterPassword(e.target.value)}
+                InputProps={{
+                  sx: { py: 0.5 },
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={handleClickShowRegisterPassword}
+                        edge="end"
+                      >
+                        {showRegisterPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
+              />
               
-              <Grid item xs={12}>
-                <TextField
-                  variant="outlined"
-                  required
-                  fullWidth
-                  name="confirm-password"
-                  label="Konfirmasi Password"
-                  type="password"
-                  id="confirm-password"
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-              </Grid>
+              <StyledTextField
+                variant="outlined"
+                required
+                fullWidth
+                name="confirm-password"
+                label="Confirm Password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                id="confirm-password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                InputProps={{
+                  sx: { py: 0.5 },
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={handleClickShowConfirmPassword}
+                        edge="end"
+                      >
+                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
+              />
               
-              <Grid item xs={12}>
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  color="primary"
-                  disabled={registerLoading}
-                  sx={{ py: 1.5 }}
-                >
-                  {registerLoading ? <CircularProgress size={24} /> : 'Register'}
-                </Button>
-              </Grid>
-            </Grid>
-          </form>
-        </TabPanel>
-      </Paper>
-    </Container>
+              <SubmitButton
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={registerLoading}
+              >
+                {registerLoading ? <CircularProgress size={24} /> : 'Register'}
+              </SubmitButton>
+            </form>
+            
+            <RegisterLink>
+              <Typography variant="body1">
+                Already have an account?
+                <Link component="button" onClick={toggleView} sx={{ ml: 1 }}>
+                  Sign In
+                </Link>
+              </Typography>
+            </RegisterLink>
+          </>
+        )}
+      </LoginCard>
+    </LoginContainer>
   );
 };
 
