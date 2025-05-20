@@ -6,8 +6,8 @@ const pool = require("./db");
 // Import your existing route files
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
-const stockRoutes = require("./routes/stockRoutes"); // Assuming this is the correct import
-
+const stockRoutes = require("./routes/stockRoutes"); 
+const reportRoutes = require("./routes/reportRoutes"); // Import report routes
 
 const app = express();
 
@@ -23,55 +23,52 @@ const allowedOrigins = allowedOriginsString ? allowedOriginsString.split(',') : 
 // Log the allowed origins being used (optional, but helpful for debugging startup)
 console.log("Configured Allowed Origins:", allowedOrigins);
 
-
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl requests, or same-origin requests)
-    if (!origin) {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl requests, or same-origin requests)
+    if (!origin) {
         console.log("CORS check: No origin, allowing."); // Log for clarity
         return callback(null, true);
     }
 
     // Check if the requesting origin is in the allowed list
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = `The CORS policy for this site does not allow access from the specified Origin: ${origin}`;
-      console.error(msg); // Log the blocked origin on the server side
-      return callback(new Error(msg), false);
-    }
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = `The CORS policy for this site does not allow access from the specified Origin: ${origin}`;
+      console.error(msg); // Log the blocked origin on the server side
+      return callback(new Error(msg), false);
+    }
 
     // If the origin is allowed
     console.log(`CORS check: Origin ${origin} is allowed.`); // Log for clarity
-    return callback(null, true);
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // Include all methods your API uses
-  credentials: true, // Important for sending cookies/authorization headers cross-origin
+    return callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // Include all methods your API uses
+  credentials: true, // Important for sending cookies/authorization headers cross-origin
 };
 
 app.use(cors(corsOptions));
 app.use(express.json()); // for parsing application/json
 app.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
-
 // Root endpoint
 app.get("/", (req, res) => {
-  res.send("Backend is running 🚀");
+  res.send("Backend is running 🚀");
 });
 
 // Mount the route files under the /api path
 app.use("/api", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", stockRoutes); // Mount stock routes
-
+app.use("/api", reportRoutes); // Mount report routes
 
 // Basic error handling middleware
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error(err.stack);
     // Send a more generic error in production, but stack in dev
-    res.status(500).send(process.env.NODE_ENV === 'production' ? 'Something broke!' : err.stack);
+    res.status(500).send(process.env.NODE_ENV === 'production' ? 'Something broke!' : err.stack);
 });
-
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });

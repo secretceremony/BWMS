@@ -202,8 +202,8 @@ const Report = () => {
         console.error("Error fetching stock data:", stockErr);
       }
 
-      // Mengambil data history dari backend
-      const response = await fetch(`${API_URL}/api/history`, {
+      // Mengambil data reports dari endpoint baru
+      const response = await fetch(`${API_URL}/api/reports`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -219,11 +219,8 @@ const Report = () => {
 
       const data = await response.json();
       
-      // Format data history menjadi format reports yang dibutuhkan
+      // Format data dari endpoint reports
       const formattedReports = data.map(item => {
-        // Cari informasi item terkait
-        const relatedItem = stockData.find(stockItem => stockItem.id === item.item_id);
-        
         return {
           id: item.id,
           jenis: item.transaction_type === 'incoming' ? 'Stock In' : 
@@ -232,37 +229,37 @@ const Report = () => {
           transactionType: item.transaction_type,
           tanggal: new Date(item.transaction_date).toISOString().split('T')[0],
           item_id: item.item_id,
-          itemName: relatedItem ? relatedItem.name : undefined,
-          itemCode: relatedItem ? relatedItem.part_number : undefined,
+          itemName: item.item_name,
+          itemCode: item.part_number,
           quantity: Math.abs(item.quantity_change),
-          unitPrice: relatedItem ? relatedItem.price : undefined,
-          totalValue: relatedItem ? Math.abs(item.quantity_change) * relatedItem.price : undefined,
+          unitPrice: item.price,
+          totalValue: Math.abs(item.quantity_change) * (item.price || 0),
           location: item.location,
           source: item.source,
           documentRef: item.document_ref,
           remarks: item.remarks,
-          category: relatedItem ? relatedItem.category : undefined,
-          supplier: relatedItem ? relatedItem.supplier : undefined
+          category: item.category,
+          supplier: item.supplier
         };
       });
 
       setReports(formattedReports);
       setTotalItems(formattedReports.length);
       
-      // Menghitung jumlah transaksi bulan ini
-      const currentDate = new Date();
-      const currentMonth = currentDate.getMonth();
-      const currentYear = currentDate.getFullYear();
-      const thisMonthTransactions = formattedReports.filter(item => {
-        const itemDate = new Date(item.tanggal);
-        return itemDate.getMonth() === currentMonth && itemDate.getFullYear() === currentYear;
+      // Hitung jumlah transaksi bulanan (dalam 30 hari terakhir)
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
+      
+      const monthlyCount = formattedReports.filter(report => {
+        const reportDate = new Date(report.tanggal);
+        return reportDate >= oneMonthAgo;
       }).length;
       
-      setMonthlyTransactions(thisMonthTransactions);
-
+      setMonthlyTransactions(monthlyCount);
+      
     } catch (err) {
-      console.error("Error fetching report data:", err);
-      setError(err.message || "Terjadi kesalahan saat mengambil data laporan.");
+      handleError('mengambil data laporan', err);
+      setReports([]);
     } finally {
       setLoading(false);
     }
@@ -600,28 +597,79 @@ const Report = () => {
     setFormLoading(true);
     setFormError(null);
 
-    // Tentukan endpoint berdasarkan tipe transaksi
-    const endpoint = transactionType === 'incoming' ? 'stock/incoming' : 'stock/outgoing';
-
     try {
       const token = getAuthToken();
       if (!token) {
         throw new Error("Token autentikasi tidak ditemukan.");
       }
 
-      // Kirim data ke backend
-      const response = await fetch(`${API_URL}/api/${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
+      // Jika dalam mode edit, gunakan endpoint reports yang baru
+      if (isEdit && editData) {
+        // Siapkan data untuk endpoint PUT /api/reports/:id
+        const reportData = {
+          item_id: formData.itemId,
+          quantity_change: transactionType === 'incoming' ? formData.quantity : -formData.quantity,
+          transaction_type: transactionType,
+          transaction_date: formData.transactionDate,
+          remarks: formData.remarks,
+          source: formData.source || null,
+          document_ref: formData.documentRef || null,
+          location: formData.location || null
+        };
+        
+        // Kirim request update ke endpoint baru
+        const response = await fetch(`${API_URL}/api/reports/${editData.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(reportData)
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+        }
+        
+        // Notifikasi sukses
+        setNotifMessage('Laporan berhasil diperbarui!');
+        setOpenSuccessNotif(true);
+      } else {
+        // Untuk tambah data baru, tetap gunakan endpoint yang ada
+        const endpoint = transactionType === 'incoming' ? 'stock/incoming' : 'stock/outgoing';
+        
+        // Siapkan data untuk dikirim
+        const postData = {
+          itemId: formData.itemId,
+          quantity: formData.quantity,
+          remarks: formData.remarks,
+          transactionDate: formData.transactionDate
+        };
+        
+        // Tambahkan properti lain jika tersedia
+        if (formData.source) postData.source = formData.source;
+        if (formData.documentRef) postData.documentRef = formData.documentRef;
+        if (formData.location) postData.location = formData.location;
+
+        // Kirim data ke backend
+        const response = await fetch(`${API_URL}/api/${endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(postData)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+        }
+        
+        // Notifikasi sukses
+        setNotifMessage('Laporan baru berhasil ditambahkan!');
+        setOpenSuccessNotif(true);
       }
 
       // Tutup form dan refresh data
@@ -636,32 +684,47 @@ const Report = () => {
     }
   };
 
-  // Handler untuk membuka dialog konfirmasi hapus
-  const handleOpenDeleteDialog = (report) => {
-    setItemToDelete(report);
-    setOpenDeleteDialog(true);
-  };
-
   // Handler untuk menghapus laporan
   const handleDeleteReport = async () => {
-    // Catatan: Karena kita tidak memiliki endpoint khusus untuk menghapus history,
-    // fungsi ini hanya akan menutup dialog dan memberikan pesan informasi bahwa
-    // fitur ini belum diimplementasikan di backend
     setDeleteLoading(true);
     
     try {
-      // Di sini seharusnya ada kode untuk memanggil API hapus history
-      // tetapi karena belum diimplementasikan, kita hanya simulasi delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error("Token autentikasi tidak ditemukan.");
+      }
       
-      // Tampilkan error bahwa fitur belum tersedia
-      alert('Fitur hapus history belum diimplementasikan di backend.');
+      if (!itemToDelete || !itemToDelete.id) {
+        throw new Error("Data yang akan dihapus tidak valid.");
+      }
       
-      // Tutup dialog
+      // Gunakan endpoint DELETE /api/reports/:id yang baru
+      const response = await fetch(`${API_URL}/api/reports/${itemToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+      }
+      
+      // Tampilkan notifikasi sukses
+      setNotifMessage(`Transaksi #${itemToDelete.id} berhasil dihapus.`);
+      setOpenSuccessNotif(true);
+      
+      // Tutup dialog dan refresh data
       setOpenDeleteDialog(false);
       setItemToDelete(null);
+      fetchReportData();
+      
     } catch (err) {
       console.error('Error deleting report:', err);
+      setErrorMessage(`Gagal menghapus laporan: ${err.message}`);
+      setOpenErrorNotif(true);
     } finally {
       setDeleteLoading(false);
     }
