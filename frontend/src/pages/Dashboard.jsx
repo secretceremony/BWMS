@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Card, CardContent, Typography, Grid, useTheme,
-  List, ListItem, ListItemText, CircularProgress, Alert
+  List, ListItem, ListItemText, CircularProgress, Alert,
+  Divider, Chip, Badge, Stack
 } from '@mui/material';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
   PieChart, Pie, Cell, Legend, ResponsiveContainer, BarChart, Bar
 } from 'recharts';
+import {
+  Warning as WarningIcon,
+  ArrowDownward as IncomingIcon,
+  ArrowUpward as OutgoingIcon
+} from '@mui/icons-material';
 
 // API URL dari environment variable
 const API_URL = import.meta.env.VITE_API_BASE_URL;
@@ -111,6 +117,22 @@ const generateRecentTransactions = (historyData, stockData) => {
   }));
 };
 
+// Fungsi untuk mendapatkan item dengan stok menipis (< 50)
+const getLowStockItems = (stockData) => {
+  if (!stockData || stockData.length === 0) return [];
+  
+  // Filter item dengan quantity < 50, urutkan dari terendah
+  return stockData
+    .filter(item => item.quantity < 50)
+    .sort((a, b) => a.quantity - b.quantity)
+    .map(item => ({
+      id: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      category: item.category || 'Uncategorized'
+    }));
+};
+
 // Fungsi untuk membuat data trend stok selama 30 hari terakhir
 const generateInventoryTrendData = (historyData) => {
   if (!historyData || historyData.length === 0) return [];
@@ -171,6 +193,7 @@ const Dashboard = () => {
   const [pieData, setPieData] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [inventoryTrendData, setInventoryTrendData] = useState([]);
+  const [lowStockItems, setLowStockItems] = useState([]);
 
   // Efek untuk mengambil data dari API
   useEffect(() => {
@@ -228,6 +251,7 @@ const Dashboard = () => {
         setPieData(generateCategoryData(stockDataResult));
         setRecentTransactions(generateRecentTransactions(historyDataResult, stockDataResult));
         setInventoryTrendData(generateInventoryTrendData(historyDataResult));
+        setLowStockItems(getLowStockItems(stockDataResult));
 
       } catch (err) {
         console.error("Fetch error:", err);
@@ -279,6 +303,79 @@ const Dashboard = () => {
               </Grid>
             ))}
           </Grid>
+
+          {/* Notifikasi Stok Menipis */}
+          {lowStockItems.length > 0 && (
+            <Box mb={theme.spacing(4)}>
+              <Card
+                sx={{
+                  borderRadius: theme.shape.borderRadius,
+                  boxShadow: theme.shadows[2],
+                  borderLeft: `4px solid ${theme.palette.warning.main}`
+                }}
+              >
+                <CardContent>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <WarningIcon sx={{ color: theme.palette.warning.main, mr: 1 }} />
+                    <Typography variant="h6" component="div" fontWeight="bold">
+                      Stok Menipis
+                    </Typography>
+                    <Chip 
+                      label={`${lowStockItems.length} item`}
+                      size="small"
+                      color="warning"
+                      sx={{ ml: 2 }}
+                    />
+                  </Box>
+                  
+                  <Divider sx={{ mb: 2 }} />
+                  
+                  <Grid container spacing={2}>
+                    {lowStockItems.slice(0, 6).map((item) => (
+                      <Grid item xs={12} sm={6} md={4} key={item.id}>
+                        <Card 
+                          variant="outlined" 
+                          sx={{ 
+                            bgcolor: theme.palette.background.default,
+                            '&:hover': {
+                              boxShadow: theme.shadows[3],
+                              cursor: 'pointer'
+                            }
+                          }}
+                        >
+                          <CardContent sx={{ padding: '8px 16px !important' }}>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                              <Typography variant="body1" component="div" fontWeight="medium" noWrap sx={{ maxWidth: '70%' }}>
+                                {item.name}
+                              </Typography>
+                              <Chip 
+                                label={item.quantity}
+                                size="small"
+                                color={item.quantity <= 10 ? "error" : "warning"}
+                              />
+                            </Stack>
+                            <Typography variant="body2" color="text.secondary" noWrap>
+                              {item.category}
+                            </Typography>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                  
+                  {lowStockItems.length > 6 && (
+                    <Typography 
+                      variant="body2" 
+                      align="center" 
+                      sx={{ mt: 2, color: theme.palette.primary.main, cursor: 'pointer' }}
+                    >
+                      Lihat semua {lowStockItems.length} item stok menipis
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Box>
+          )}
 
           {/* Charts */}
           <Grid container spacing={theme.spacing(3)}>
