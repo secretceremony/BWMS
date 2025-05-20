@@ -15,15 +15,18 @@
 
 ## 📈 Ringkasan Progres
 
-Pada minggu ini, kami berhasil menyelesaikan fungsionalitas CRUD untuk Stock Management, mengimplementasikan fitur menambahkan dan mengeluarkan barang dengan notifikasi di halaman History, serta menambahkan halaman Register. Selain itu, kami juga menyesuaikan layout aplikasi agar menjadi mobile-friendly.
+Pada minggu ini, kami berhasil menyelesaikan .
 
 ---
 
 ## ✅ Tugas yang Diselesaikan
 
-* **add report**: Menambahkan fitur add report agar user dapat membuat laporan transaksi barang Masuk/Keluar.
+* **Add Report**: Menambahkan fitur add report agar user dapat membuat laporan transaksi barang Masuk/Keluar.
 * **Fillter Report**:  mengimplementasikan fitur fillter report untuk membantu user dalam mencari laporan dari kriteria tertentu
+* **Edit Report**: Menambahkan fitur eksport laporan untuk membantu pengguna dalam membuat laporan dengan format tertentu
 * **Eksport Report**: Menambahkan fitur eksport laporan untuk membantu pengguna dalam membuat laporan dengan format tertentu
+* **Visualization Dashboard**: Menambahkan fitur eksport laporan untuk membantu pengguna dalam membuat laporan dengan format tertentu
+* **Notifikasi Stok Menipis**: Menambahkan fitur eksport laporan untuk membantu pengguna dalam membuat laporan dengan format tertentu
 
 
 ---
@@ -55,38 +58,31 @@ Pada minggu ini, kami berhasil menyelesaikan fungsionalitas CRUD untuk Stock Man
 
 ## 🖼️ Tangkapan Layar / Demo
 
-Berikut adalah tangkapan layar yang menunjukkan fitur-fitur dan progres yang telah kami selesaikan pada minggu ini, meliputi manajemen stok (CRUD), alur barang masuk/keluar dan riwayatnya, detail endpoint API, dan hasil pengujian integrasi.
+Berikut adalah tangkapan layar yang menunjukkan fitur-fitur dan progres yang telah kami selesaikan pada minggu ini, meliputi Add report, Fillter Report, Edit Report, Eksport Report, Visualization Dashboard, serta Notifikasi Stok Menipis.
 
-### 2. CRUD Stock Management
-- **(CREATE) Tambah Barang**
-<img src="2.png" alt="Tambah Barang">
+### 1. CRUD Report Management
+- **Menambahkan Report**
+<img src="2.png" alt="Tambah Report">
 >
-- **Penambahan Barang pada Tabel**
-<img src="3.png" alt="Penambahan Barang pada Tabel">
+- **Hasil Penambahan Report pada Tabel**
+<img src="3.png" alt="Hasil penambahan report pada tabel">
 >
-- **(UPDATE) Mengedit Data**
-<img src="4.png" alt="Mengedit Data">
+- **Filter Report**
+<img src="4.png" alt="Fillter Report">
 >
-- **(DELETE) Menghapus Barang**
+- **Hasil Fillter Report**
 <img src="5.png" alt="Menghapus Barang">
 >
-- **Hasil Mengedit dan Menghapus Barang**
+
+
+### 2. Dashboard
+- **Data Visualization**
 <img src="6.png" alt="Hasil Mengedit dan Menghapus Barang">
 >
-
+- **Notifikasi Stock Menipis**
+<img src="6.png" alt="Hasil Mengedit dan Menghapus Barang">
 ---
 
-### 3. Barang Masuk & Keluar + History
-- **Barang Masuk**
-<img src="7.png" alt="Incoming Goods">
->
-- **Barang Keluar**
-<img src="8.png" alt="Outgoing Goods">
->
-- **Notifikasi di halaman History**
-<img src="9.png" alt="Notification on History page">
->
----
 
 ### 3. Endpoint Dasar
 
