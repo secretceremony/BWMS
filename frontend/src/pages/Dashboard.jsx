@@ -24,21 +24,31 @@ const getAuthToken = () => {
 
 // Fungsi untuk membuat data statistik dari data stok
 const generateStatsFromData = (stockData, historyData) => {
-  // Total inventory
+  // Total inventory - jumlah total semua stok
   const totalStock = stockData.reduce((sum, item) => sum + item.quantity, 0);
   
-  // Low stock alerts (item dengan quantity <= 10)
-  const lowStockCount = stockData.filter(item => item.quantity <= 10).length;
+  // Low stock alerts - item dengan quantity < 50
+  const lowStockCount = stockData.filter(item => item.quantity < 50).length;
   
-  // Incoming/outgoing dari history
-  const incomingCount = historyData ? historyData.filter(item => item.transaction_type === 'incoming').length : 0;
-  const outgoingCount = historyData ? historyData.filter(item => item.transaction_type === 'outgoing').length : 0;
+  // Incoming shipments - total kuantitas barang masuk
+  const incomingTotal = historyData 
+    ? historyData
+        .filter(item => item.transaction_type === 'incoming')
+        .reduce((sum, item) => sum + Math.abs(item.quantity_change), 0)
+    : 0;
+  
+  // Outgoing shipments - total kuantitas barang keluar
+  const outgoingTotal = historyData 
+    ? historyData
+        .filter(item => item.transaction_type === 'outgoing')
+        .reduce((sum, item) => sum + Math.abs(item.quantity_change), 0)
+    : 0;
   
   return [
     { title: 'Total Inventory', value: totalStock.toString() },
     { title: 'Low Stock Alerts', value: lowStockCount.toString() },
-    { title: 'Incoming Shipments', value: incomingCount.toString() },
-    { title: 'Outgoing Shipments', value: outgoingCount.toString() },
+    { title: 'Incoming Shipments', value: incomingTotal.toString() },
+    { title: 'Outgoing Shipments', value: outgoingTotal.toString() },
   ];
 };
 

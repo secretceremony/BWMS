@@ -31,6 +31,8 @@ import {
   TextField,
   Divider,
   Chip,
+  Tabs,
+  Tab
 } from '@mui/material';
 import { 
   ArrowBack, 
@@ -82,12 +84,15 @@ const Report = () => {
   const [page, setPage] = useState(0);
   const rowsPerPage = 5;
   
+  // State untuk tab laporan
+  const [reportTab, setReportTab] = useState(0); // 0 = Transaksi, 1 = Stok Barang
+  
   // State untuk integrasi backend
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalItems, setTotalItems] = useState(0);
-  const [stockItems, setStockItems] = useState(0);
+  const [stockItems, setStockItems] = useState([]);
   const [totalStockValue, setTotalStockValue] = useState(0);
   const [monthlyTransactions, setMonthlyTransactions] = useState(0);
 
@@ -151,7 +156,7 @@ const Report = () => {
     setOpenErrorNotif(true);
   };
 
-  // Fungsi untuk mengambil data history dari backend
+  // Fungsi untuk mengambil data dari backend
   const fetchReportData = async () => {
     if (!API_URL) {
       setError("Konfigurasi aplikasi error: API URL tidak tersedia.");
@@ -182,7 +187,7 @@ const Report = () => {
 
         if (stockResponse.ok) {
           stockData = await stockResponse.json();
-          setStockItems(stockData.length);
+          setStockItems(stockData); // Simpan semua data stok
           
           // Hitung total nilai inventory (asumsi setiap item memiliki price)
           let totalValue = 0;
@@ -228,14 +233,16 @@ const Report = () => {
           tanggal: new Date(item.transaction_date).toISOString().split('T')[0],
           item_id: item.item_id,
           itemName: relatedItem ? relatedItem.name : undefined,
-          itemCode: relatedItem ? relatedItem.code : undefined,
+          itemCode: relatedItem ? relatedItem.part_number : undefined,
           quantity: Math.abs(item.quantity_change),
           unitPrice: relatedItem ? relatedItem.price : undefined,
           totalValue: relatedItem ? Math.abs(item.quantity_change) * relatedItem.price : undefined,
           location: item.location,
           source: item.source,
           documentRef: item.document_ref,
-          remarks: item.remarks
+          remarks: item.remarks,
+          category: relatedItem ? relatedItem.category : undefined,
+          supplier: relatedItem ? relatedItem.supplier : undefined
         };
       });
 
@@ -277,6 +284,7 @@ const Report = () => {
       report.id.toString().includes(query) ||
       report.jenis.toLowerCase().includes(query) ||
       report.tanggal.includes(query) ||
+      (report.itemName && report.itemName.toLowerCase().includes(query)) ||
       (report.remarks && report.remarks.toLowerCase().includes(query));
     
     // Filter berdasarkan tipe transaksi
@@ -296,7 +304,27 @@ const Report = () => {
     return matchesSearch && matchesType && matchesStartDate && matchesEndDate;
   });
 
+  // Filter data stok barang
+  const filteredStockItems = stockItems.filter((item) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      item.id.toString().includes(query) ||
+      (item.name && item.name.toLowerCase().includes(query)) ||
+      (item.part_number && item.part_number.toLowerCase().includes(query)) ||
+      (item.category && item.category.toLowerCase().includes(query)) ||
+      (item.supplier && item.supplier.toLowerCase().includes(query)) ||
+      (item.status && item.status.toLowerCase().includes(query))
+    );
+  });
+
+  // Pagination untuk laporan transaksi
   const paginatedReports = filteredReports.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+
+  // Pagination untuk laporan stok
+  const paginatedStockItems = filteredStockItems.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
@@ -408,7 +436,7 @@ const Report = () => {
       y += lineHeight;
       doc.text(`Total Transaksi: ${totalItems}`, margin, y);
       y += lineHeight;
-      doc.text(`Total Item Stok: ${stockItems}`, margin, y);
+      doc.text(`Total Item Stok: ${stockItems.length}`, margin, y);
       y += lineHeight * 2;
       
       // Buat tabel sederhana tanpa menggunakan autoTable
@@ -546,7 +574,7 @@ const Report = () => {
         [''],
         ['Dicetak pada:', new Date().toLocaleDateString('id-ID')],
         ['Total Transaksi:', totalItems],
-        ['Total Item Stok:', stockItems],
+        ['Total Item Stok:', stockItems.length],
         ['Filter Pencarian:', searchQuery || '(Tidak ada)']
       ];
       
@@ -749,6 +777,13 @@ const Report = () => {
     setReportMode(event.target.value);
   };
 
+  // Handler untuk perubahan tab
+  const handleTabChange = (event, newValue) => {
+    setReportTab(newValue);
+    setPage(0); // Reset halaman saat berganti tab
+    setSearchQuery(''); // Reset pencarian saat berganti tab
+  };
+
   return (
     <Box sx={{ p: { xs: 2, md: 4 } }}>
       {/* Section: Dashboard Cards */}
@@ -795,7 +830,7 @@ const Report = () => {
           >
             <Typography variant="h6">Total Item Stok</Typography>
             <Typography variant="h4" fontWeight="bold" mt={1}>
-              {stockItems}
+              {stockItems.length}
             </Typography>
             <Typography variant="caption" mt={1}>
               Jenis barang dalam inventori
@@ -860,11 +895,24 @@ const Report = () => {
 
       <Card sx={{ p: 3, mb: 4 }}>
         <Typography variant="h5" gutterBottom>
-          Laporan Transaksi Inventory
+          {reportTab === 0 ? 'Laporan Transaksi Inventory' : 'Laporan Stok Barang'}
         </Typography>
         <Typography variant="body1" color="text.secondary" mb={2}>
-          Laporan ini menampilkan semua transaksi inventory yang telah tercatat dalam sistem, termasuk stock in, stock out, dan stock adjustment.
+          {reportTab === 0 
+            ? 'Laporan ini menampilkan semua transaksi inventory yang telah tercatat dalam sistem, termasuk stock in, stock out, dan stock adjustment.'
+            : 'Laporan ini menampilkan semua item stok beserta informasi detail seperti jumlah, kategori, supplier, dan nilai stok.'}
         </Typography>
+        
+        {/* Tab untuk beralih antara laporan transaksi dan stok */}
+        <Tabs 
+          value={reportTab} 
+          onChange={handleTabChange} 
+          aria-label="report tabs"
+          sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}
+        >
+          <Tab label="Laporan Transaksi" />
+          <Tab label="Laporan Stok Barang" />
+        </Tabs>
       </Card>
 
       {/* Action Bar: Filter, Search, Export, etc */}
@@ -882,7 +930,7 @@ const Report = () => {
             onClick={handleOpenAddForm}
             startIcon={<AddIcon />}
           >
-            Tambah Laporan
+            Tambah {reportTab === 0 ? 'Laporan' : 'Stok'}
           </Button>
           
           <Tooltip title="Filter Laporan">
@@ -896,87 +944,157 @@ const Report = () => {
             </Button>
           </Tooltip>
           
-          <Menu
-            anchorEl={filterAnchorEl}
-            open={openFilterMenu}
-            onClose={handleFilterClose}
-            PaperProps={{
-              elevation: 3,
-              sx: {
-                p: 2,
-                width: 280,
-              }
-            }}
-          >
-            <Typography variant="subtitle2" gutterBottom>
-              Filter Berdasarkan
-            </Typography>
-            
-            <FormControl fullWidth margin="dense" size="small">
-              <InputLabel>Jenis Transaksi</InputLabel>
-              <Select
-                value={filterType}
-                onChange={handleFilterTypeChange}
-                label="Jenis Transaksi"
-              >
-                <MenuItem value="">Semua</MenuItem>
-                <MenuItem value="Stock In">Stock In</MenuItem>
-                <MenuItem value="Stock Out">Stock Out</MenuItem>
-                <MenuItem value="Stock Adjustment">Stock Adjustment</MenuItem>
-              </Select>
-            </FormControl>
-            
-            <Box sx={{ mt: 2 }}>
+          {/* Filter menu untuk laporan transaksi */}
+          {reportTab === 0 && (
+            <Menu
+              anchorEl={filterAnchorEl}
+              open={openFilterMenu}
+              onClose={handleFilterClose}
+              PaperProps={{
+                elevation: 3,
+                sx: {
+                  p: 2,
+                  width: 280,
+                }
+              }}
+            >
               <Typography variant="subtitle2" gutterBottom>
-                Rentang Tanggal
+                Filter Berdasarkan
               </Typography>
               
-              <TextField
-                label="Dari Tanggal"
-                type="date"
-                name="startDate"
-                value={filterStartDate}
-                onChange={handleFilterDateChange}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-                fullWidth
-                size="small"
-                margin="dense"
-              />
+              <FormControl fullWidth margin="dense" size="small">
+                <InputLabel>Jenis Transaksi</InputLabel>
+                <Select
+                  value={filterType}
+                  onChange={handleFilterTypeChange}
+                  label="Jenis Transaksi"
+                >
+                  <MenuItem value="">Semua</MenuItem>
+                  <MenuItem value="Stock In">Stock In</MenuItem>
+                  <MenuItem value="Stock Out">Stock Out</MenuItem>
+                  <MenuItem value="Stock Adjustment">Stock Adjustment</MenuItem>
+                </Select>
+              </FormControl>
               
-              <TextField
-                label="Sampai Tanggal"
-                type="date"
-                name="endDate"
-                value={filterEndDate}
-                onChange={handleFilterDateChange}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-                fullWidth
-                size="small"
-                margin="dense"
-              />
-            </Box>
-            
-            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-              <Button 
-                variant="outlined" 
-                size="small"
-                onClick={handleFilterClose}
-              >
-                Batal
-              </Button>
-              <Button 
-                variant="contained" 
-                size="small"
-                onClick={handleApplyFilters}
-              >
-                Terapkan
-              </Button>
-            </Box>
-          </Menu>
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Rentang Tanggal
+                </Typography>
+                
+                <TextField
+                  label="Dari Tanggal"
+                  type="date"
+                  name="startDate"
+                  value={filterStartDate}
+                  onChange={handleFilterDateChange}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  fullWidth
+                  size="small"
+                  margin="dense"
+                />
+                
+                <TextField
+                  label="Sampai Tanggal"
+                  type="date"
+                  name="endDate"
+                  value={filterEndDate}
+                  onChange={handleFilterDateChange}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  fullWidth
+                  size="small"
+                  margin="dense"
+                />
+              </Box>
+              
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  onClick={handleFilterClose}
+                >
+                  Batal
+                </Button>
+                <Button 
+                  variant="contained" 
+                  size="small"
+                  onClick={handleApplyFilters}
+                >
+                  Terapkan
+                </Button>
+              </Box>
+            </Menu>
+          )}
+          
+          {/* Filter menu untuk laporan stok barang */}
+          {reportTab === 1 && (
+            <Menu
+              anchorEl={filterAnchorEl}
+              open={openFilterMenu}
+              onClose={handleFilterClose}
+              PaperProps={{
+                elevation: 3,
+                sx: {
+                  p: 2,
+                  width: 280,
+                }
+              }}
+            >
+              <Typography variant="subtitle2" gutterBottom>
+                Filter Berdasarkan
+              </Typography>
+              
+              <FormControl fullWidth margin="dense" size="small">
+                <InputLabel>Kategori</InputLabel>
+                <Select
+                  value={filterType}
+                  onChange={handleFilterTypeChange}
+                  label="Kategori"
+                >
+                  <MenuItem value="">Semua</MenuItem>
+                  {/* Get unique categories */}
+                  {Array.from(new Set(stockItems.map(item => item.category))).filter(Boolean).map(category => (
+                    <MenuItem key={category} value={category}>{category}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              
+              <FormControl fullWidth margin="dense" size="small">
+                <InputLabel>Supplier</InputLabel>
+                <Select
+                  value={filterType}
+                  onChange={handleFilterTypeChange}
+                  label="Supplier"
+                >
+                  <MenuItem value="">Semua</MenuItem>
+                  {/* Get unique suppliers */}
+                  {Array.from(new Set(stockItems.map(item => item.supplier))).filter(Boolean).map(supplier => (
+                    <MenuItem key={supplier} value={supplier}>{supplier}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  onClick={handleFilterClose}
+                >
+                  Batal
+                </Button>
+                <Button 
+                  variant="contained" 
+                  size="small"
+                  onClick={handleApplyFilters}
+                >
+                  Terapkan
+                </Button>
+              </Box>
+            </Menu>
+          )}
           
           <Tooltip title="Ekspor Laporan">
             <Button
@@ -1042,18 +1160,20 @@ const Report = () => {
         </Box>
         
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Mode Laporan</InputLabel>
-            <Select
-              value={reportMode}
-              onChange={handleReportModeChange}
-              label="Mode Laporan"
-              size="small"
-            >
-              <MenuItem value="detail">Laporan Detail</MenuItem>
-              <MenuItem value="summary">Laporan Ringkasan</MenuItem>
-            </Select>
-          </FormControl>
+          {reportTab === 0 && (
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Mode Laporan</InputLabel>
+              <Select
+                value={reportMode}
+                onChange={handleReportModeChange}
+                label="Mode Laporan"
+                size="small"
+              >
+                <MenuItem value="detail">Laporan Detail</MenuItem>
+                <MenuItem value="summary">Laporan Ringkasan</MenuItem>
+              </Select>
+            </FormControl>
+          )}
           
           <Button 
             variant="outlined" 
@@ -1066,7 +1186,7 @@ const Report = () => {
           <SearchInput
             searchQuery={searchQuery}
             onSearchChange={handleSearchChange}
-            placeholder="Cari laporan..."
+            placeholder={`Cari ${reportTab === 0 ? 'laporan' : 'item'}...`}
           />
         </Box>
       </Stack>
@@ -1116,103 +1236,252 @@ const Report = () => {
             component={Paper}
             sx={{ overflowX: 'auto' }}
           >
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ bgcolor: theme.palette.grey[100] }}>
-                  <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Jenis</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Tanggal</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Item ID</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Nama Item</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Kuantitas</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Asal/Tujuan</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold' }}>Keterangan</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>
-                    Aksi
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedReports.length > 0 ? (
-                  paginatedReports.map((report) => (
-                    <TableRow 
-                      key={report.id} 
-                      hover
-                      sx={{
-                        backgroundColor: 
-                          report.transactionType === 'incoming' ? theme.palette.success.light + '20' : 
-                          report.transactionType === 'outgoing' ? theme.palette.error.light + '20' : 
-                          theme.palette.warning.light + '20'
-                      }}
-                    >
-                      <TableCell>{report.id}</TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={report.jenis}
-                          size="small"
-                          sx={{ 
-                            bgcolor: 
-                              report.transactionType === 'incoming' ? theme.palette.success.light : 
-                              report.transactionType === 'outgoing' ? theme.palette.error.light : 
-                              theme.palette.warning.light,
-                            color: 
-                              report.transactionType === 'incoming' ? theme.palette.success.dark : 
-                              report.transactionType === 'outgoing' ? theme.palette.error.dark : 
-                              theme.palette.warning.dark,
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>{new Date(report.tanggal).toLocaleDateString('id-ID')}</TableCell>
-                      <TableCell>{report.item_id || '-'}</TableCell>
-                      <TableCell>
-                        {report.itemName || 
-                          (stockItems.find(item => item.id === report.item_id)?.name || '-')}
-                      </TableCell>
-                      <TableCell>{report.quantity}</TableCell>
-                      <TableCell>{report.source || '-'}</TableCell>
-                      <TableCell>
-                        <Tooltip title={report.remarks || "Tidak ada keterangan"}>
-                          <span>{report.remarks ? (report.remarks.length > 20 ? report.remarks.substring(0, 20) + '...' : report.remarks) : '-'}</span>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          justifyContent="center"
-                        >
-                          <IconButton 
-                            size="small" 
-                            color="primary"
-                            onClick={() => handleOpenEditForm(report)}
-                          >
-                            <Edit fontSize="small" />
-                          </IconButton>
-                          <IconButton 
-                            size="small" 
-                            color="error"
-                            onClick={() => handleOpenDeleteDialog(report)}
-                          >
-                            <Delete fontSize="small" />
-                          </IconButton>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 2 }}>
-                        <InfoOutlined sx={{ fontSize: 40, color: theme.palette.text.secondary, mb: 1 }} />
-                        <Typography variant="body2" color="text.secondary">
-                          {reports.length === 0 ? 'Belum ada data transaksi.' : 'Tidak ada laporan yang sesuai dengan kriteria pencarian.'}
-                        </Typography>
-                      </Box>
+            {/* Tabel Laporan Transaksi */}
+            {reportTab === 0 && (
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: theme.palette.grey[100] }}>
+                    <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Jenis</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Tanggal</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Item ID</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Nama Item</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Kategori</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Kuantitas</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Harga</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Total</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Asal/Tujuan</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Dokumen Ref</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Keterangan</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+                      Aksi
                     </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {paginatedReports.length > 0 ? (
+                    paginatedReports.map((report) => (
+                      <TableRow 
+                        key={report.id} 
+                        hover
+                        sx={{
+                          backgroundColor: 
+                            report.transactionType === 'incoming' ? theme.palette.success.light + '20' : 
+                            report.transactionType === 'outgoing' ? theme.palette.error.light + '20' : 
+                            theme.palette.warning.light + '20'
+                        }}
+                      >
+                        <TableCell>{report.id}</TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={report.jenis}
+                            size="small"
+                            sx={{ 
+                              bgcolor: 
+                                report.transactionType === 'incoming' ? theme.palette.success.light : 
+                                report.transactionType === 'outgoing' ? theme.palette.error.light : 
+                                theme.palette.warning.light,
+                              color: 
+                                report.transactionType === 'incoming' ? theme.palette.success.dark : 
+                                report.transactionType === 'outgoing' ? theme.palette.error.dark : 
+                                theme.palette.warning.dark,
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>{new Date(report.tanggal).toLocaleDateString('id-ID')}</TableCell>
+                        <TableCell>{report.item_id || '-'}</TableCell>
+                        <TableCell>
+                          {report.itemName || '-'}
+                        </TableCell>
+                        <TableCell>{report.category || '-'}</TableCell>
+                        <TableCell>{report.quantity}</TableCell>
+                        <TableCell>
+                          {report.unitPrice 
+                            ? new Intl.NumberFormat('id-ID', { 
+                                style: 'currency', 
+                                currency: 'IDR',
+                                maximumFractionDigits: 0 
+                              }).format(report.unitPrice)
+                            : '-'
+                          }
+                        </TableCell>
+                        <TableCell>
+                          {report.totalValue 
+                            ? new Intl.NumberFormat('id-ID', { 
+                                style: 'currency', 
+                                currency: 'IDR',
+                                maximumFractionDigits: 0 
+                              }).format(report.totalValue)
+                            : '-'
+                          }
+                        </TableCell>
+                        <TableCell>{report.source || '-'}</TableCell>
+                        <TableCell>{report.documentRef || '-'}</TableCell>
+                        <TableCell>
+                          <Tooltip title={report.remarks || "Tidak ada keterangan"}>
+                            <span>{report.remarks ? (report.remarks.length > 20 ? report.remarks.substring(0, 20) + '...' : report.remarks) : '-'}</span>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            justifyContent="center"
+                          >
+                            <IconButton 
+                              size="small" 
+                              color="primary"
+                              onClick={() => handleOpenEditForm(report)}
+                            >
+                              <Edit fontSize="small" />
+                            </IconButton>
+                            <IconButton 
+                              size="small" 
+                              color="error"
+                              onClick={() => handleOpenDeleteDialog(report)}
+                            >
+                              <Delete fontSize="small" />
+                            </IconButton>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={13} align="center" sx={{ py: 3 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 2 }}>
+                          <InfoOutlined sx={{ fontSize: 40, color: theme.palette.text.secondary, mb: 1 }} />
+                          <Typography variant="body2" color="text.secondary">
+                            {reports.length === 0 ? 'Belum ada data transaksi.' : 'Tidak ada laporan yang sesuai dengan kriteria pencarian.'}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+
+            {/* Tabel Laporan Stok Barang */}
+            {reportTab === 1 && (
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: theme.palette.grey[100] }}>
+                    <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Nama Item</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Part Number</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Kategori</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Kuantitas</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Supplier</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>UOM</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Harga Satuan</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Nilai Total</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Keterangan</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+                      Aksi
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {paginatedStockItems.length > 0 ? (
+                    paginatedStockItems.map((item) => {
+                      const totalValue = (item.price && item.quantity) ? item.price * item.quantity : 0;
+                      return (
+                        <TableRow 
+                          key={item.id} 
+                          hover
+                          sx={{
+                            backgroundColor: item.quantity <= 10 
+                              ? theme.palette.error.light + '20'
+                              : item.quantity <= 50
+                                ? theme.palette.warning.light + '20'
+                                : 'inherit'
+                          }}
+                        >
+                          <TableCell>{item.id}</TableCell>
+                          <TableCell>{item.name}</TableCell>
+                          <TableCell>{item.part_number || '-'}</TableCell>
+                          <TableCell>{item.category || '-'}</TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={item.quantity} 
+                              size="small"
+                              color={
+                                item.quantity <= 10 ? "error" :
+                                item.quantity <= 50 ? "warning" :
+                                "success"
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>{item.supplier || '-'}</TableCell>
+                          <TableCell>{item.status || '-'}</TableCell>
+                          <TableCell>{item.uom || '-'}</TableCell>
+                          <TableCell>
+                            {item.price 
+                              ? new Intl.NumberFormat('id-ID', { 
+                                  style: 'currency', 
+                                  currency: 'IDR',
+                                  maximumFractionDigits: 0 
+                                }).format(item.price)
+                              : '-'
+                            }
+                          </TableCell>
+                          <TableCell>
+                            {totalValue 
+                              ? new Intl.NumberFormat('id-ID', { 
+                                  style: 'currency', 
+                                  currency: 'IDR',
+                                  maximumFractionDigits: 0 
+                                }).format(totalValue)
+                              : '-'
+                            }
+                          </TableCell>
+                          <TableCell>
+                            <Tooltip title={item.remarks || "Tidak ada keterangan"}>
+                              <span>{item.remarks ? (item.remarks.length > 20 ? item.remarks.substring(0, 20) + '...' : item.remarks) : '-'}</span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              justifyContent="center"
+                            >
+                              <IconButton 
+                                size="small" 
+                                color="primary"
+                                onClick={() => handleOpenEditForm(item)}
+                              >
+                                <Edit fontSize="small" />
+                              </IconButton>
+                              <IconButton 
+                                size="small" 
+                                color="error"
+                                onClick={() => handleOpenDeleteDialog(item)}
+                              >
+                                <Delete fontSize="small" />
+                              </IconButton>
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={12} align="center" sx={{ py: 3 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 2 }}>
+                          <InfoOutlined sx={{ fontSize: 40, color: theme.palette.text.secondary, mb: 1 }} />
+                          <Typography variant="body2" color="text.secondary">
+                            {stockItems.length === 0 ? 'Belum ada data stok barang.' : 'Tidak ada item stok yang sesuai dengan kriteria pencarian.'}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </TableContainer>
         )}
       </Card>
@@ -1226,13 +1495,20 @@ const Report = () => {
         flexWrap="wrap"
       >
         <Typography variant="body2" color="text.secondary">
-          Menampilkan {paginatedReports.length} dari {filteredReports.length} total transaksi
+          {reportTab === 0 
+            ? `Menampilkan ${paginatedReports.length} dari ${filteredReports.length} total transaksi`
+            : `Menampilkan ${paginatedStockItems.length} dari ${filteredStockItems.length} total item stok`
+          }
           {activeFilters.length > 0 && ' (dengan filter)'}
         </Typography>
         
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <Typography variant="body2" mr={1}>
-            Halaman {page + 1} dari {Math.max(1, Math.ceil(filteredReports.length / rowsPerPage))}
+            Halaman {page + 1} dari {Math.max(1, Math.ceil(
+              reportTab === 0 
+                ? filteredReports.length / rowsPerPage
+                : filteredStockItems.length / rowsPerPage
+            ))}
           </Typography>
           <IconButton
             size="small"
@@ -1246,7 +1522,11 @@ const Report = () => {
             size="small"
             onClick={() => handlePageChange(page + 1)}
             disabled={
-              page >= Math.ceil(filteredReports.length / rowsPerPage) - 1
+              page >= Math.ceil(
+                reportTab === 0 
+                  ? filteredReports.length / rowsPerPage 
+                  : filteredStockItems.length / rowsPerPage
+              ) - 1
             }
           >
             <ArrowForward fontSize="small" />
