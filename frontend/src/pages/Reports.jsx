@@ -351,6 +351,12 @@ const Report = () => {
     setOpenForm(true);
   };
 
+  // Handler untuk membuka dialog konfirmasi hapus
+  const handleOpenDeleteDialog = (item) => {
+    setItemToDelete(item);
+    setOpenDeleteDialog(true);
+  };
+
   // Handler menu ekspor
   const handleExportClick = (event) => {
     setExportAnchorEl(event.currentTarget);
@@ -698,8 +704,13 @@ const Report = () => {
         throw new Error("Data yang akan dihapus tidak valid.");
       }
       
-      // Gunakan endpoint DELETE /api/reports/:id yang baru
-      const response = await fetch(`${API_URL}/api/reports/${itemToDelete.id}`, {
+      // URL berbeda untuk hapus berdasarkan jenis tab
+      const deleteUrl = reportTab === 0 
+        ? `${API_URL}/api/reports/${itemToDelete.id}` // Hapus laporan transaksi
+        : `${API_URL}/api/stock/${itemToDelete.id}`; // Hapus item stok
+      
+      // Kirim request delete ke endpoint yang sesuai
+      const response = await fetch(deleteUrl, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -708,22 +719,52 @@ const Report = () => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = await response.json();
         throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+      }
+
+      // Perbarui state berdasarkan jenis tab
+      if (reportTab === 0) {
+        // Perbarui state reports (transaksi)
+        setReports(prevReports => prevReports.filter(report => report.id !== itemToDelete.id));
+      } else {
+        // Perbarui state stockItems
+        setStockItems(prevStockItems => prevStockItems.filter(item => item.id !== itemToDelete.id));
       }
       
       // Tampilkan notifikasi sukses
-      setNotifMessage(`Transaksi #${itemToDelete.id} berhasil dihapus.`);
+      const successMessage = reportTab === 0
+        ? `Transaksi #${itemToDelete.id} berhasil dihapus.`
+        : `Item stok "${itemToDelete.name}" berhasil dihapus.`;
+        
+      setNotifMessage(successMessage);
       setOpenSuccessNotif(true);
       
-      // Tutup dialog dan refresh data
+      // Tutup dialog
       setOpenDeleteDialog(false);
       setItemToDelete(null);
-      fetchReportData();
+
+      // Jika halaman saat ini kosong setelah penghapusan, kembali ke halaman sebelumnya
+      const items = reportTab === 0 ? reports : stockItems;
+      const remainingItems = items.length - 1;
+      const maxPage = Math.ceil(remainingItems / rowsPerPage) - 1;
+      if (page > maxPage && maxPage >= 0) {
+        setPage(maxPage);
+      }
       
     } catch (err) {
-      console.error('Error deleting report:', err);
-      setErrorMessage(`Gagal menghapus laporan: ${err.message}`);
+      console.error('Error deleting item:', err);
+      let errorMsg = `Gagal menghapus ${reportTab === 0 ? 'laporan' : 'item stok'}: `;
+      
+      if (err.message.includes('FOREIGN KEY')) {
+        errorMsg += 'Data ini terkait dengan data lain dan tidak dapat dihapus.';
+      } else if (err.message.includes('negative')) {
+        errorMsg += 'Penghapusan akan menyebabkan stok negatif.';
+      } else {
+        errorMsg += err.message;
+      }
+      
+      setErrorMessage(errorMsg);
       setOpenErrorNotif(true);
     } finally {
       setDeleteLoading(false);
@@ -1616,13 +1657,26 @@ const Report = () => {
         <DialogTitle>Konfirmasi Hapus</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Apakah Anda yakin ingin menghapus laporan ini?
+            Apakah Anda yakin ingin menghapus {reportTab === 0 ? 'laporan' : 'item stok'} ini?
             {itemToDelete && (
               <>
                 <br /><br />
                 <strong>ID:</strong> {itemToDelete.id}<br />
-                <strong>Jenis:</strong> {itemToDelete.jenis}<br />
-                <strong>Tanggal:</strong> {itemToDelete.tanggal}
+                {reportTab === 0 ? (
+                  <>
+                    <strong>Jenis:</strong> {itemToDelete.jenis}<br />
+                    <strong>Tanggal:</strong> {new Date(itemToDelete.tanggal).toLocaleDateString('id-ID')}<br />
+                    <strong>Item:</strong> {itemToDelete.itemName || '-'}<br />
+                    <strong>Kuantitas:</strong> {itemToDelete.quantity}
+                  </>
+                ) : (
+                  <>
+                    <strong>Nama Item:</strong> {itemToDelete.name}<br />
+                    <strong>Part Number:</strong> {itemToDelete.part_number || '-'}<br />
+                    <strong>Kategori:</strong> {itemToDelete.category || '-'}<br />
+                    <strong>Stok:</strong> {itemToDelete.quantity}
+                  </>
+                )}
               </>
             )}
           </DialogContentText>
@@ -1873,3 +1927,4 @@ const Report = () => {
 };
 
 export default Report;
+
