@@ -1923,7 +1923,7 @@ const Report = () => {
         </DialogActions>
       </Dialog>
     </Box>
-  );
+  );;
 };
 
 export default Report;

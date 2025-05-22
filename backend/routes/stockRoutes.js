@@ -3,14 +3,20 @@ const express = require("express");
 const router = express.Router();
 // Import all stock controller functions, including the new history function
 const {
-    getAllStock,
-    getStockById,
-    createStock,
-    updateStock,
-    deleteStock,
+    getAllStock,
+    getStockById,
+    createStock,
+    updateStock,
+    deleteStock,
     recordIncomingGoods,
     recordOutgoingGoods,
-    getStockHistory // Import the new function
+    getStockHistory, // Import the new function
+    // Import supplier functions
+    getAllSuppliers,
+    getSupplierById,
+    createSupplier,
+    updateSupplier,
+    deleteSupplier
 } = require("../controllers/stockController");
 const authenticateToken = require("../middleware/authMiddleware"); // Import authentication middleware
 
@@ -42,5 +48,11 @@ router.post("/stock/outgoing", authenticateToken, recordOutgoingGoods);
 // This matches the endpoint the frontend is trying to call
 router.get("/history", authenticateToken, getStockHistory);
 
+// --- Supplier Management Routes ---
+router.get("/suppliers", authenticateToken, getAllSuppliers);
+router.get("/suppliers/:id", authenticateToken, getSupplierById);
+router.post("/suppliers", authenticateToken, createSupplier);
+router.put("/suppliers/:id", authenticateToken, updateSupplier);
+router.delete("/suppliers/:id", authenticateToken, deleteSupplier);
 
 module.exports = router;
