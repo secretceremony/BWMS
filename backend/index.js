@@ -8,6 +8,7 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const stockRoutes = require("./routes/stockRoutes"); 
 const reportRoutes = require("./routes/reportRoutes"); // Import report routes
+const supplierRoutes = require("./routes/supplierRoutes");
 
 const app = express();
 
@@ -60,6 +61,7 @@ app.use("/api", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", stockRoutes); // Mount stock routes
 app.use("/api", reportRoutes); // Mount report routes
+app.use("/api", supplierRoutes);
 
 // Basic error handling middleware
 app.use((err, req, res, next) => {
