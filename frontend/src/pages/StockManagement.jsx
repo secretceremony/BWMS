@@ -64,7 +64,7 @@ const getAuthToken = () => {
 };
 
 
-const StockManagement = () => {
+const StockManagement = ({ user }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm')); // Determine if screen is small (mobile)
   const navigate = useNavigate(); // Hook for navigation
@@ -514,9 +514,15 @@ const StockManagement = () => {
           {/* Action Bar: Filter, Search, Add */}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }} justifyContent="space-between" mb={3}>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <Button variant="contained" color="primary" onClick={handleAddItem} sx={{ minWidth: { xs: '100%', sm: 120 } }}>Add New Item</Button>
-              <Button variant="outlined" color="primary" onClick={handleOpenIncomingForm} sx={{ minWidth: { xs: '100%', sm: 120 } }}>Incoming Goods</Button>
-              <Button variant="outlined" color="primary" onClick={handleOpenOutgoingForm} sx={{ minWidth: { xs: '100%', sm: 120 } }}>Outgoing Goods</Button>
+              {user && user.role === 'admin' && (
+                <Button variant="contained" color="primary" onClick={handleAddItem} sx={{ minWidth: { xs: '100%', sm: 120 } }}>Add New Item</Button>
+              )}
+              {user && user.role === 'admin' && (
+                <Button variant="outlined" color="primary" onClick={handleOpenIncomingForm} sx={{ minWidth: { xs: '100%', sm: 120 } }}>Incoming Goods</Button>
+              )}
+              {user && user.role === 'admin' && (
+                <Button variant="outlined" color="primary" onClick={handleOpenOutgoingForm} sx={{ minWidth: { xs: '100%', sm: 120 } }}>Outgoing Goods</Button>
+              )}
               <Tooltip title="Filter Inventory">
                 <Button variant="outlined" onClick={handleFilterClick} startIcon={<FilterList />} color="primary">Filter</Button>
               </Tooltip>
@@ -664,20 +670,24 @@ const StockManagement = () => {
                             </Tooltip>
                           </TableCell>
                           <TableCell>
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleEdit(item.id)}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteClick(item.id)}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
+                            {user && user.role === 'admin' && (
+                              <>
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleEdit(item.id)}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeleteClick(item.id)}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </>
+                            )}
                           </TableCell>
                         </TableRow>
                       );
@@ -699,32 +709,38 @@ const StockManagement = () => {
             error={deleteError}
           />
 
-          <StockForm
-            open={openForm}
-            onClose={handleCancelForm}
-            onSubmit={handleSaveItem}
-            initialData={itemToEdit}
-            loading={saveLoading}
-            error={saveError}
-          />
+          {user && user.role === 'admin' && (
+            <StockForm
+              open={openForm}
+              onClose={handleCancelForm}
+              onSubmit={handleSaveItem}
+              initialData={itemToEdit}
+              loading={saveLoading}
+              error={saveError}
+            />
+          )}
 
-          <IncomingGoodsForm
-            open={openIncomingForm}
-            onClose={() => setOpenIncomingForm(false)}
-            onSubmit={handleProcessIncoming}
-            items={items}
-            loading={transactionLoading}
-            error={transactionError}
-          />
+          {user && user.role === 'admin' && (
+            <IncomingGoodsForm
+              open={openIncomingForm}
+              onClose={() => setOpenIncomingForm(false)}
+              onSubmit={handleProcessIncoming}
+              items={items}
+              loading={transactionLoading}
+              error={transactionError}
+            />
+          )}
 
-          <OutgoingGoodsForm
-            open={openOutgoingForm}
-            onClose={() => setOpenOutgoingForm(false)}
-            onSubmit={handleProcessOutgoing}
-            items={items}
-            loading={transactionLoading}
-            error={transactionError}
-          />
+          {user && user.role === 'admin' && (
+            <OutgoingGoodsForm
+              open={openOutgoingForm}
+              onClose={() => setOpenOutgoingForm(false)}
+              onSubmit={handleProcessOutgoing}
+              items={items}
+              loading={transactionLoading}
+              error={transactionError}
+            />
+          )}
         </Box>
       ) : (
         // Tab Supplier

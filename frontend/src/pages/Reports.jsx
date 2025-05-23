@@ -78,7 +78,7 @@ const getAuthToken = () => {
   return localStorage.getItem('token');
 };
 
-const Report = () => {
+const Report = ({ user }) => {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(0);
@@ -1028,15 +1028,17 @@ const Report = () => {
         mb={3}
       >
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <Button 
-            variant="contained" 
-            size="medium" 
-            onClick={handleOpenAddForm}
-            startIcon={<AddIcon />}
-            sx={{ minWidth: { xs: '100%', sm: 120 } }}
-          >
-            Tambah {reportTab === 0 ? 'Laporan' : 'Stok'}
-          </Button>
+          {user && user.role === 'admin' && (
+            <Button 
+              variant="contained" 
+              size="medium" 
+              onClick={handleOpenAddForm}
+              startIcon={<AddIcon />}
+              sx={{ minWidth: { xs: '100%', sm: 120 } }}
+            >
+              Tambah {reportTab === 0 ? 'Laporan' : 'Stok'}
+            </Button>
+          )}
           
           <Tooltip title="Filter Laporan">
             <Button
@@ -1428,26 +1430,16 @@ const Report = () => {
                           </Tooltip>
                         </TableCell>
                         <TableCell align="center">
-                          <Stack
-                            direction="row"
-                            spacing={1}
-                            justifyContent="center"
-                          >
-                            <IconButton 
-                              size="small" 
-                              color="primary"
-                              onClick={() => handleOpenEditForm(report)}
-                            >
-                              <Edit fontSize="small" />
-                            </IconButton>
-                            <IconButton 
-                              size="small" 
-                              color="error"
-                              onClick={() => handleOpenDeleteDialog(report)}
-                            >
-                              <Delete fontSize="small" />
-                            </IconButton>
-                          </Stack>
+                          {user && user.role === 'admin' && (
+                            <Stack direction="row" spacing={1} justifyContent="center">
+                              <IconButton size="small" color="primary" onClick={() => handleOpenEditForm(report)}>
+                                <Edit fontSize="small" />
+                              </IconButton>
+                              <IconButton size="small" color="error" onClick={() => handleOpenDeleteDialog(report)}>
+                                <Delete fontSize="small" />
+                              </IconButton>
+                            </Stack>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))
@@ -1548,26 +1540,16 @@ const Report = () => {
                             </Tooltip>
                           </TableCell>
                           <TableCell align="center">
-                            <Stack
-                              direction="row"
-                              spacing={1}
-                              justifyContent="center"
-                            >
-                              <IconButton 
-                                size="small" 
-                                color="primary"
-                                onClick={() => handleOpenEditForm(item)}
-                              >
-                                <Edit fontSize="small" />
-                              </IconButton>
-                              <IconButton 
-                                size="small" 
-                                color="error"
-                                onClick={() => handleOpenDeleteDialog(item)}
-                              >
-                                <Delete fontSize="small" />
-                              </IconButton>
-                            </Stack>
+                            {user && user.role === 'admin' && (
+                              <Stack direction="row" spacing={1} justifyContent="center">
+                                <IconButton size="small" color="primary" onClick={() => handleOpenEditForm(item)}>
+                                  <Edit fontSize="small" />
+                                </IconButton>
+                                <IconButton size="small" color="error" onClick={() => handleOpenDeleteDialog(item)}>
+                                  <Delete fontSize="small" />
+                                </IconButton>
+                              </Stack>
+                            )}
                           </TableCell>
                         </TableRow>
                       );
@@ -1640,15 +1622,17 @@ const Report = () => {
       </Stack>
 
       {/* Form Dialog untuk Tambah/Edit Laporan */}
-      <ReportForm
-        open={openForm}
-        onClose={() => setOpenForm(false)}
-        onSubmit={handleFormSubmit}
-        loading={formLoading}
-        error={formError}
-        isEdit={isEdit}
-        editData={editData}
-      />
+      {user && user.role === 'admin' && (
+        <ReportForm
+          open={openForm}
+          onClose={() => setOpenForm(false)}
+          onSubmit={handleFormSubmit}
+          loading={formLoading}
+          error={formError}
+          isEdit={isEdit}
+          editData={editData}
+        />
+      )}
 
       {/* Dialog Konfirmasi Hapus */}
       <Dialog

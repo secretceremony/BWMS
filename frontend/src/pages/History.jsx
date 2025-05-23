@@ -17,7 +17,7 @@ const getAuthToken = () => {
     return localStorage.getItem('token');
 };
 
-const History = () => {
+const History = ({ user }) => {
   const theme = useTheme();
 
   // State for fetched history data

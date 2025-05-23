@@ -31,7 +31,7 @@ const getAuthToken = () => {
   return localStorage.getItem('token');
 };
 
-const SupplierManagement = () => {
+const SupplierManagement = ({ user }) => {
   // State untuk data supplier
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -230,14 +230,16 @@ const SupplierManagement = () => {
     <Box sx={{ width: '100%' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">Manajemen Supplier</Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={handleAddSupplier}
-        >
-          Tambah Supplier
-        </Button>
+        {user && user.role === 'admin' && (
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={handleAddSupplier}
+          >
+            Tambah Supplier
+          </Button>
+        )}
       </Box>
 
       <Card>
@@ -298,20 +300,16 @@ const SupplierManagement = () => {
                       </Tooltip>
                     </TableCell>
                     <TableCell>
-                      <IconButton 
-                        size="small" 
-                        color="primary" 
-                        onClick={() => handleEditSupplier(supplier)}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton 
-                        size="small" 
-                        color="error" 
-                        onClick={() => handleDeleteClick(supplier)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
+                      {user && user.role === 'admin' && (
+                        <>
+                          <IconButton size="small" color="primary" onClick={() => handleEditSupplier(supplier)}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" color="error" onClick={() => handleDeleteClick(supplier)}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
@@ -322,14 +320,16 @@ const SupplierManagement = () => {
       </Card>
 
       {/* Form Supplier */}
-      <SupplierForm
-        open={openForm}
-        onClose={handleCloseForm}
-        onSubmit={handleSaveSupplier}
-        initialData={supplierToEdit}
-        loading={saveLoading}
-        error={saveError}
-      />
+      {user && user.role === 'admin' && (
+        <SupplierForm
+          open={openForm}
+          onClose={handleCloseForm}
+          onSubmit={handleSaveSupplier}
+          initialData={supplierToEdit}
+          loading={saveLoading}
+          error={saveError}
+        />
+      )}
 
       {/* Dialog Konfirmasi Hapus */}
       <Dialog

@@ -187,7 +187,7 @@ const getChartColors = (theme) => [
   theme.palette.info.main,
 ];
 
-const Dashboard = () => {
+const Dashboard = ({ user }) => {
   const theme = useTheme();
   const chartColors = getChartColors(theme);
 

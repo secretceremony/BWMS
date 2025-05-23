@@ -303,7 +303,7 @@ function App() {
             <Route path="dashboard" element={<Dashboard user={user} />} />
             <Route path="profile" element={<Profile user={user} />} />
             <Route path="stock-management" element={<StockManagement user={user} />} />
-            <Route path="reports" element={<Report user={user} />} /> {/* Use Report component name */}
+            <Route path="reports" element={<Report user={user} />} />
             <Route path="history" element={<History user={user} />} />
           </Route>
 

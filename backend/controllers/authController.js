@@ -52,12 +52,16 @@ const login = async (req, res) => {
 
 // Register controller
 const register = async (req, res) => {
-  const { email, username, password } = req.body;
+  const { email, username, password, role } = req.body;
 
   // Validasi input
   if (!email || !username || !password) {
     return res.status(400).json({ error: "Email, username, dan password dibutuhkan." });
   }
+
+  // Validasi role
+  const allowedRoles = ['admin', 'manager'];
+  const userRole = allowedRoles.includes(role) ? role : 'manager';
 
   try {
     // Cek apakah email sudah terdaftar
@@ -84,15 +88,12 @@ const register = async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Default role: 'user'
-    const role = 'user';
-
     // Insert user baru ke database
     const result = await pool.query(
       `INSERT INTO users (email, username, password, role) 
        VALUES ($1, $2, $3, $4) 
        RETURNING id, email, username, role`,
-      [email, username, hashedPassword, role]
+      [email, username, hashedPassword, userRole]
     );
 
     const newUser = result.rows[0];

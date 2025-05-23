@@ -32,7 +32,8 @@ const ReportForm = ({
   loading = false,
   error = null,
   isEdit = false,
-  editData = null
+  editData = null,
+  user
 }) => {
   const theme = useTheme();
 
@@ -259,6 +260,10 @@ const ReportForm = ({
   // Handler submit form
   const handleSubmit = (event) => {
     event.preventDefault();
+    if (!user || user.role !== 'admin') {
+      alert('Akses hanya untuk admin.');
+      return;
+    }
     if (!validate()) return;
 
     const dataToSubmit = {
@@ -440,6 +445,11 @@ const ReportForm = ({
           <Box sx={{ mt: 2 }}>
             <Typography variant="body2" color="error">{itemsError}</Typography>
           </Box>
+        )}
+        {user && user.role !== 'admin' && (
+          <Typography color="warning.main" sx={{ mb: 2 }}>
+            Anda hanya dapat melihat data. Untuk menambah/mengedit laporan, silakan hubungi admin.
+          </Typography>
         )}
       </DialogContent>
       <DialogActions sx={{ padding: theme.spacing(2) }}>
