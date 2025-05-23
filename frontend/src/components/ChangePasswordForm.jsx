@@ -1,6 +1,9 @@
 import React from 'react';
 import { Card, CardContent, Typography, Divider, Grid, TextField, Button, CircularProgress, IconButton } from '@mui/material';
 import { LockReset, Visibility, VisibilityOff } from '@mui/icons-material';
+import axios from 'axios';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const ChangePasswordForm = ({ user }) => {
   const [currentPassword, setCurrentPassword] = React.useState('');
@@ -12,7 +15,39 @@ const ChangePasswordForm = ({ user }) => {
   const [isChangingPassword, setIsChangingPassword] = React.useState(false);
 
   const handleChangePassword = async () => {
-    // ... logic ubah password sama seperti sebelumnya ...
+    if (!currentPassword) {
+      alert('Password saat ini harus diisi.');
+      return;
+    }
+    if (!newPassword) {
+      alert('Password baru harus diisi.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      alert('Password baru dan konfirmasi tidak sama.');
+      return;
+    }
+    setIsChangingPassword(true);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Token tidak ditemukan. Silakan login ulang.');
+      setIsChangingPassword(false);
+      return;
+    }
+    try {
+      const config = { headers: { 'Authorization': `Bearer ${token}` } };
+      const payload = { currentPassword, newPassword };
+      const res = await axios.post(`${API_BASE_URL}/api/profile/change-password`, payload, config);
+      alert('Password berhasil diubah!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      if (res.data && res.data.token) localStorage.setItem('token', res.data.token);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Gagal mengubah password');
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   return (
