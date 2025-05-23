@@ -496,15 +496,15 @@ const StockManagement = ({ user }) => {
         // Tab Inventory
         <Box>
           {/* Action Bar: Filter, Search, Add */}
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }} justifyContent="space-between" mb={3}>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" mb={3}>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
               {user && user.role === 'admin' && (
                 <Button 
                   variant="contained" 
-                  size="medium" 
+                  size="small" 
                   onClick={handleAddItem}
                   startIcon={<EditIcon />}
-                  sx={{ minWidth: { xs: '100%', sm: 120 } }}
+                  sx={{ minWidth: 100, height: 36 }}
                 >
                   Tambah Item
                 </Button>
@@ -512,11 +512,11 @@ const StockManagement = ({ user }) => {
               {user && user.role === 'admin' && (
                 <Button 
                   variant="outlined" 
-                  size="medium" 
+                  size="small" 
                   onClick={handleOpenIncomingForm}
                   startIcon={<ArrowDownward />}
                   color="primary"
-                  sx={{ minWidth: { xs: '100%', sm: 120 } }}
+                  sx={{ minWidth: 100, height: 36 }}
                 >
                   Barang Masuk
                 </Button>
@@ -524,11 +524,11 @@ const StockManagement = ({ user }) => {
               {user && user.role === 'admin' && (
                 <Button 
                   variant="outlined" 
-                  size="medium" 
+                  size="small" 
                   onClick={handleOpenOutgoingForm}
                   startIcon={<ArrowUpward />}
                   color="primary"
-                  sx={{ minWidth: { xs: '100%', sm: 120 } }}
+                  sx={{ minWidth: 100, height: 36 }}
                 >
                   Barang Keluar
                 </Button>
@@ -536,17 +536,55 @@ const StockManagement = ({ user }) => {
               <Tooltip title="Filter Inventory">
                 <Button 
                   variant="outlined" 
-                  size="medium" 
+                  size="small" 
                   onClick={handleFilterClick}
                   startIcon={<FilterList />} 
                   color="primary"
-                  sx={{ minWidth: { xs: '100%', sm: 120 } }}
+                  sx={{ minWidth: 100, height: 36 }}
                 >
                   Filter
                 </Button>
               </Tooltip>
+              <Menu
+                anchorEl={filterAnchorEl}
+                open={openFilterMenu}
+                onClose={handleFilterClose}
+                PaperProps={{ sx: { p: 2, minWidth: 220 } }}
+              >
+                <Typography variant="subtitle2" gutterBottom>Filter</Typography>
+                <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                  <InputLabel>Kategori</InputLabel>
+                  <Select
+                    value={filterCategory}
+                    label="Kategori"
+                    onChange={e => setFilterCategory(e.target.value)}
+                  >
+                    <MenuItem value="">Semua</MenuItem>
+                    {[...new Set(items.map(i => i.category).filter(Boolean))].map(cat => (
+                      <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                  <InputLabel>Supplier</InputLabel>
+                  <Select
+                    value={filterSupplier}
+                    label="Supplier"
+                    onChange={e => setFilterSupplier(e.target.value)}
+                  >
+                    <MenuItem value="">Semua</MenuItem>
+                    {[...new Set(items.map(i => i.supplier).filter(Boolean))].map(sup => (
+                      <MenuItem key={sup} value={sup}>{sup}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <Button size="small" onClick={() => { setFilterCategory(''); setFilterSupplier(''); handleFilterClose(); }}>Reset</Button>
+                  <Button size="small" variant="contained" onClick={handleFilterClose}>Terapkan</Button>
+                </Box>
+              </Menu>
             </Box>
-            <Box sx={{ minWidth: { xs: '100%', sm: 250 } }}>
+            <Box sx={{ minWidth: 200 }}>
               <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder="Cari item..." fullWidth />
             </Box>
           </Stack>

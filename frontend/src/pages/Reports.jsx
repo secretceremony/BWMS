@@ -108,10 +108,6 @@ const Report = ({ user }) => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  // State untuk menu ekspor
-  const [exportAnchorEl, setExportAnchorEl] = useState(null);
-  const openExportMenu = Boolean(exportAnchorEl);
-  
   // State untuk filter ekspor
   const [showExportOptions, setShowExportOptions] = useState(false);
   const [exportDateRange, setExportDateRange] = useState({
@@ -304,14 +300,16 @@ const Report = ({ user }) => {
   // Filter data stok barang
   const filteredStockItems = stockItems.filter((item) => {
     const query = searchQuery.toLowerCase();
-    return (
+    const matchSearch =
       item.id.toString().includes(query) ||
       (item.name && item.name.toLowerCase().includes(query)) ||
       (item.part_number && item.part_number.toLowerCase().includes(query)) ||
       (item.category && item.category.toLowerCase().includes(query)) ||
       (item.supplier && item.supplier.toLowerCase().includes(query)) ||
-      (item.status && item.status.toLowerCase().includes(query))
-    );
+      (item.status && item.status.toLowerCase().includes(query));
+    const matchCategory = !filterType || item.category === filterType;
+    const matchSupplier = !filterStartDate || item.supplier === filterStartDate;
+    return matchSearch && matchCategory && matchSupplier;
   });
 
   // Pagination untuk laporan transaksi
@@ -352,25 +350,6 @@ const Report = ({ user }) => {
     setOpenDeleteDialog(true);
   };
 
-  // Handler menu ekspor
-  const handleExportClick = (event) => {
-    setExportAnchorEl(event.currentTarget);
-  };
-
-  const handleExportClose = () => {
-    setExportAnchorEl(null);
-  };
-  
-  // Handler untuk membuka dialog opsi ekspor
-  const handleExportOptionClick = (exportType) => {
-    handleExportClose();
-    setExportDateRange({
-      startDate: '',
-      endDate: new Date().toISOString().split('T')[0]
-    });
-    setShowExportOptions(true);
-  };
-  
   // Handler untuk mengubah filter tanggal ekspor
   const handleExportDateChange = (e) => {
     const { name, value } = e.target;
@@ -383,32 +362,26 @@ const Report = ({ user }) => {
   // Handler untuk proses ekspor dengan filter
   const handleProcessExport = (exportType) => {
     setShowExportOptions(false);
-    
-    // Filter data berdasarkan tanggal jika ditentukan
-    let dataToExport = [...filteredReports];
-    if (exportDateRange.startDate) {
-      dataToExport = dataToExport.filter(report => 
-        report.tanggal >= exportDateRange.startDate
-      );
-    }
-    if (exportDateRange.endDate) {
-      dataToExport = dataToExport.filter(report => 
-        report.tanggal <= exportDateRange.endDate
-      );
-    }
-    
-    // Eksekusi ekspor berdasarkan tipe
-    if (exportType === 'pdf') {
-      exportToPDF(dataToExport);
-    } else if (exportType === 'excel') {
-      exportToExcel(dataToExport);
+    let dataToExport;
+    if (reportTab === 0) {
+      dataToExport = [...filteredReports];
+      if (exportType === 'pdf') {
+        exportToPDF(dataToExport);
+      } else if (exportType === 'excel') {
+        exportToExcel(dataToExport);
+      }
+    } else {
+      dataToExport = [...filteredStockItems];
+      if (exportType === 'pdf') {
+        exportStockToPDF(dataToExport);
+      } else if (exportType === 'excel') {
+        exportStockToExcel(dataToExport);
+      }
     }
   };
 
   // Fungsi ekspor ke PDF
   const exportToPDF = (dataToExport) => {
-    handleExportClose();
-    
     try {
       // Inisialisasi jsPDF dengan orientasi landscape
       const doc = new jsPDF('landscape');
@@ -534,8 +507,6 @@ const Report = ({ user }) => {
   
   // Fungsi ekspor ke Excel
   const exportToExcel = (dataToExport) => {
-    handleExportClose();
-    
     try {
       // Persiapkan data untuk Excel
       const worksheetData = dataToExport.map(report => ({
@@ -883,6 +854,137 @@ const Report = ({ user }) => {
     setSearchQuery(''); // Reset pencarian saat berganti tab
   };
 
+  // Tambahkan fungsi exportStockToPDF dan exportStockToExcel di bawah fungsi exportToExcel
+  const exportStockToPDF = (dataToExport) => {
+    try {
+      const doc = new jsPDF('landscape');
+      const currentDate = new Date().toLocaleDateString('id-ID');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 15;
+      const lineHeight = 8;
+      let y = margin;
+      doc.setFontSize(18);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Laporan Stok Barang", margin, y);
+      y += lineHeight * 2;
+      doc.setFontSize(11);
+      doc.text(`Dicetak pada: ${currentDate}`, margin, y);
+      y += lineHeight;
+      doc.text(`Total Item Stok: ${dataToExport.length}`, margin, y);
+      y += lineHeight * 2;
+      const columns = [
+        { header: "ID", width: 20 },
+        { header: "Nama Item", width: 50 },
+        { header: "Part Number", width: 30 },
+        { header: "Kategori", width: 30 },
+        { header: "Kuantitas", width: 25 },
+        { header: "Supplier", width: 40 },
+        { header: "Status", width: 30 },
+        { header: "UOM", width: 20 },
+        { header: "Harga", width: 35 },
+        { header: "Total", width: 40 },
+        { header: "Keterangan", width: 60 }
+      ];
+      let x = margin;
+      doc.setFillColor(41, 128, 185);
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'bold');
+      doc.rect(margin, y, pageWidth - margin * 2, lineHeight, 'F');
+      columns.forEach(column => {
+        doc.text(column.header, x, y + lineHeight - 2);
+        x += column.width;
+      });
+      y += lineHeight;
+      doc.setTextColor(0, 0, 0);
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(9);
+      const maxRows = Math.min(dataToExport.length, 20);
+      for (let i = 0; i < maxRows; i++) {
+        const item = dataToExport[i];
+        x = margin;
+        if (i % 2 === 0) {
+          doc.setFillColor(240, 240, 240);
+          doc.rect(margin, y, pageWidth - margin * 2, lineHeight, 'F');
+        }
+        doc.text(String(item.id), x, y + lineHeight - 2); x += columns[0].width;
+        doc.text(item.name || '-', x, y + lineHeight - 2); x += columns[1].width;
+        doc.text(item.part_number ? String(item.part_number) : '-', x, y + lineHeight - 2); x += columns[2].width;
+        doc.text(item.category || '-', x, y + lineHeight - 2); x += columns[3].width;
+        doc.text(item.quantity !== undefined ? String(item.quantity) : '-', x, y + lineHeight - 2); x += columns[4].width;
+        doc.text(item.supplier || '-', x, y + lineHeight - 2); x += columns[5].width;
+        doc.text(item.status || '-', x, y + lineHeight - 2); x += columns[6].width;
+        doc.text(item.uom || '-', x, y + lineHeight - 2); x += columns[7].width;
+        doc.text(item.price ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.price) : '-', x, y + lineHeight - 2); x += columns[8].width;
+        const totalValue = (item.price && item.quantity) ? item.price * item.quantity : 0;
+        doc.text(totalValue ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalValue) : '-', x, y + lineHeight - 2); x += columns[9].width;
+        doc.text(item.remarks ? (item.remarks.length > 20 ? item.remarks.substring(0, 20) + '...' : item.remarks) : '-', x, y + lineHeight - 2);
+        y += lineHeight;
+      }
+      if (dataToExport.length > maxRows) {
+        y += lineHeight;
+        doc.setFont(undefined, 'italic');
+        doc.text(`* Hanya menampilkan ${maxRows} dari ${dataToExport.length} item.`, margin, y);
+      }
+      const pageCount = doc.internal.getNumberOfPages();
+      doc.setFontSize(8);
+      doc.setFont(undefined, 'normal');
+      doc.text(
+        `PT Biruni Altha Ethan - Laporan dicetak pada ${currentDate}`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'center' }
+      );
+      const filename = `Laporan_Stok_${currentDate.replace(/\//g, '-')}`;
+      doc.save(`${filename}.pdf`);
+      setNotifMessage('Ekspor PDF stok berhasil! File telah disimpan ke perangkat Anda.');
+      setOpenSuccessNotif(true);
+    } catch (error) {
+      handleError('mengekspor stok ke PDF', error);
+    }
+  };
+  const exportStockToExcel = (dataToExport) => {
+    try {
+      const worksheetData = dataToExport.map(item => ({
+        'ID': item.id,
+        'Nama Item': item.name,
+        'Part Number': item.part_number,
+        'Kategori': item.category,
+        'Kuantitas': item.quantity,
+        'Supplier': item.supplier,
+        'Status': item.status,
+        'UOM': item.uom,
+        'Harga': item.price,
+        'Total': (item.price && item.quantity) ? item.price * item.quantity : 0,
+        'Keterangan': item.remarks || '-'
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+      const colWidths = [
+        { wch: 10 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 20 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 30 }
+      ];
+      worksheet['!cols'] = colWidths;
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Stok Barang");
+      const infoData = [
+        ['Laporan Stok Barang'],
+        ['PT Biruni Altha Ethan'],
+        [''],
+        ['Dicetak pada:', new Date().toLocaleDateString('id-ID')],
+        ['Total Item Stok:', dataToExport.length],
+        ['Filter Pencarian:', searchQuery || '(Tidak ada)']
+      ];
+      const infoSheet = XLSX.utils.aoa_to_sheet(infoData);
+      XLSX.utils.book_append_sheet(workbook, infoSheet, "Info");
+      const currentDate = new Date().toLocaleDateString('id-ID').replace(/\//g, '-');
+      const filename = `Laporan_Stok_${currentDate}`;
+      XLSX.writeFile(workbook, `${filename}.xlsx`);
+      setNotifMessage('Ekspor Excel stok berhasil! File telah disimpan ke perangkat Anda.');
+      setOpenSuccessNotif(true);
+    } catch (error) {
+      handleError('mengekspor stok ke Excel', error);
+    }
+  };
+
   return (
     <Box sx={{ p: { xs: 2, md: 4 } }}>
       {/* Section: Dashboard Cards */}
@@ -1016,64 +1118,50 @@ const Report = ({ user }) => {
 
       {/* Action Bar: Filter, Search, Export, etc */}
       <Stack
-        direction={{ xs: 'column', sm: 'row' }}
+        direction="row"
         spacing={2}
-        alignItems={{ xs: 'stretch', sm: 'center' }}
+        alignItems="center"
         justifyContent="space-between"
         mb={3}
       >
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
-          {user && user.role === 'admin' && (
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+          {user && user.role === 'admin' && reportTab === 0 && (
             <Button 
               variant="contained" 
-              size="medium" 
+              size="small" 
               onClick={handleOpenAddForm}
               startIcon={<AddIcon />}
-              sx={{ minWidth: { xs: '100%', sm: 120 } }}
-              fullWidth={true}
+              sx={{ minWidth: 100, height: 36 }}
             >
-              Tambah {reportTab === 0 ? 'Laporan' : 'Stok'}
+              Tambah Laporan
             </Button>
           )}
-          
           <Tooltip title="Filter Laporan">
             <Button
               variant="outlined"
               onClick={handleFilterClick}
               startIcon={<FilterList />}
               color="primary"
-              size="medium"
-              sx={{ minWidth: { xs: '100%', sm: 120 } }}
-              fullWidth={true}
+              size="small"
+              sx={{ minWidth: 100, height: 36 }}
             >
               Filter
             </Button>
           </Tooltip>
-          
-          {/* Filter menu untuk laporan transaksi */}
-          {reportTab === 0 && (
-            <Menu
-              anchorEl={filterAnchorEl}
-              open={openFilterMenu}
-              onClose={handleFilterClose}
-              PaperProps={{
-                elevation: 3,
-                sx: {
-                  p: 2,
-                  width: 280,
-                }
-              }}
-            >
-              <Typography variant="subtitle2" gutterBottom>
-                Filter Berdasarkan
-              </Typography>
-              
-              <FormControl fullWidth margin="dense" size="small">
+          <Menu
+            anchorEl={filterAnchorEl}
+            open={openFilterMenu}
+            onClose={handleFilterClose}
+            PaperProps={{ sx: { p: 2, minWidth: 220 } }}
+          >
+            <Typography variant="subtitle2" gutterBottom>Filter</Typography>
+            {reportTab === 0 ? (
+              <FormControl fullWidth size="small" sx={{ mb: 2 }}>
                 <InputLabel>Jenis Transaksi</InputLabel>
                 <Select
                   value={filterType}
-                  onChange={handleFilterTypeChange}
                   label="Jenis Transaksi"
+                  onChange={handleFilterTypeChange}
                 >
                   <MenuItem value="">Semua</MenuItem>
                   <MenuItem value="Stock In">Stock In</MenuItem>
@@ -1081,209 +1169,55 @@ const Report = ({ user }) => {
                   <MenuItem value="Stock Adjustment">Stock Adjustment</MenuItem>
                 </Select>
               </FormControl>
-              
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Rentang Tanggal
-                </Typography>
-                
-                <TextField
-                  label="Dari Tanggal"
-                  type="date"
-                  name="startDate"
-                  value={filterStartDate}
-                  onChange={handleFilterDateChange}
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  fullWidth
-                  size="small"
-                  margin="dense"
-                />
-                
-                <TextField
-                  label="Sampai Tanggal"
-                  type="date"
-                  name="endDate"
-                  value={filterEndDate}
-                  onChange={handleFilterDateChange}
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  fullWidth
-                  size="small"
-                  margin="dense"
-                />
-              </Box>
-              
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-                <Button 
-                  variant="outlined" 
-                  size="small"
-                  onClick={handleFilterClose}
-                >
-                  Batal
-                </Button>
-                <Button 
-                  variant="contained" 
-                  size="small"
-                  onClick={handleApplyFilters}
-                >
-                  Terapkan
-                </Button>
-              </Box>
-            </Menu>
-          )}
-          
-          {/* Filter menu untuk laporan stok barang */}
-          {reportTab === 1 && (
-            <Menu
-              anchorEl={filterAnchorEl}
-              open={openFilterMenu}
-              onClose={handleFilterClose}
-              PaperProps={{
-                elevation: 3,
-                sx: {
-                  p: 2,
-                  width: 280,
-                }
-              }}
-            >
-              <Typography variant="subtitle2" gutterBottom>
-                Filter Berdasarkan
-              </Typography>
-              
-              <FormControl fullWidth margin="dense" size="small">
-                <InputLabel>Kategori</InputLabel>
-                <Select
-                  value={filterType}
-                  onChange={handleFilterTypeChange}
-                  label="Kategori"
-                >
-                  <MenuItem value="">Semua</MenuItem>
-                  {/* Get unique categories */}
-                  {Array.from(new Set(stockItems.map(item => item.category))).filter(Boolean).map(category => (
-                    <MenuItem key={category} value={category}>{category}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              
-              <FormControl fullWidth margin="dense" size="small">
-                <InputLabel>Supplier</InputLabel>
-                <Select
-                  value={filterType}
-                  onChange={handleFilterTypeChange}
-                  label="Supplier"
-                >
-                  <MenuItem value="">Semua</MenuItem>
-                  {/* Get unique suppliers */}
-                  {Array.from(new Set(stockItems.map(item => item.supplier))).filter(Boolean).map(supplier => (
-                    <MenuItem key={supplier} value={supplier}>{supplier}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-                <Button 
-                  variant="outlined" 
-                  size="small"
-                  onClick={handleFilterClose}
-                >
-                  Batal
-                </Button>
-                <Button 
-                  variant="contained" 
-                  size="small"
-                  onClick={handleApplyFilters}
-                >
-                  Terapkan
-                </Button>
-              </Box>
-            </Menu>
-          )}
-          
+            ) : (
+              <>
+                <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                  <InputLabel>Kategori</InputLabel>
+                  <Select
+                    value={filterType}
+                    label="Kategori"
+                    onChange={e => setFilterType(e.target.value)}
+                  >
+                    <MenuItem value="">Semua</MenuItem>
+                    {Array.from(new Set(stockItems.map(item => item.category))).filter(Boolean).map(category => (
+                      <MenuItem key={category} value={category}>{category}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                  <InputLabel>Supplier</InputLabel>
+                  <Select
+                    value={filterStartDate}
+                    label="Supplier"
+                    onChange={e => setFilterStartDate(e.target.value)}
+                  >
+                    <MenuItem value="">Semua</MenuItem>
+                    {Array.from(new Set(stockItems.map(item => item.supplier))).filter(Boolean).map(supplier => (
+                      <MenuItem key={supplier} value={supplier}>{supplier}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </>
+            )}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+              <Button size="small" onClick={() => { setFilterType(''); setFilterStartDate(''); handleFilterClose(); }}>Reset</Button>
+              <Button size="small" variant="contained" onClick={handleFilterClose}>Terapkan</Button>
+            </Box>
+          </Menu>
           <Tooltip title="Ekspor Laporan">
             <Button
               variant="outlined"
               startIcon={<FileDownload />}
-              onClick={handleExportClick}
+              onClick={() => setShowExportOptions(true)}
               color="primary"
-              size="medium"
-              sx={{ minWidth: { xs: '100%', sm: 120 } }}
-              fullWidth={true}
+              size="small"
+              sx={{ minWidth: 100, height: 36 }}
             >
               Ekspor
             </Button>
           </Tooltip>
-          
-          <Menu
-            anchorEl={exportAnchorEl}
-            open={openExportMenu}
-            onClose={handleExportClose}
-            anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'left',
-            }}
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'left',
-            }}
-            PaperProps={{
-              elevation: 3,
-              sx: {
-                borderRadius: 1,
-                minWidth: 180,
-              }
-            }}
-          >
-            <MenuItem onClick={() => handleExportOptionClick('pdf')} sx={{ py: 1.5 }}>
-              <PictureAsPdf sx={{ mr: 1.5, color: theme.palette.error.main }} /> 
-              <Box>
-                <Typography variant="body2">Ekspor ke PDF</Typography>
-                <Typography variant="caption" color="text.secondary">Format dokumen untuk cetak</Typography>
-              </Box>
-            </MenuItem>
-            <MenuItem onClick={() => handleExportOptionClick('excel')} sx={{ py: 1.5 }}>
-              <GridOn sx={{ mr: 1.5, color: theme.palette.success.main }} />
-              <Box>
-                <Typography variant="body2">Ekspor ke Excel</Typography>
-                <Typography variant="caption" color="text.secondary">Format spreadsheet untuk analisis</Typography>
-              </Box>
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={handleOpenEmailDialog} sx={{ py: 1.5 }}>
-              <Email sx={{ mr: 1.5, color: theme.palette.info.main }} />
-              <Box>
-                <Typography variant="body2">Kirim via Email</Typography>
-                <Typography variant="caption" color="text.secondary">Bagikan laporan ke tim</Typography>
-              </Box>
-            </MenuItem>
-            <MenuItem sx={{ py: 1.5 }}>
-              <Print sx={{ mr: 1.5, color: theme.palette.text.primary }} />
-              <Box>
-                <Typography variant="body2">Cetak Laporan</Typography>
-                <Typography variant="caption" color="text.secondary">Cetak langsung dari browser</Typography>
-              </Box>
-            </MenuItem>
-          </Menu>
         </Box>
-        
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
-          {reportTab === 0 && (
-            <FormControl size="small" sx={{ minWidth: 150, width: { xs: '100%', sm: 150 } }}>
-              <InputLabel>Mode Laporan</InputLabel>
-              <Select
-                value={reportMode}
-                onChange={handleReportModeChange}
-                label="Mode Laporan"
-                size="small"
-              >
-                <MenuItem value="detail">Laporan Detail</MenuItem>
-                <MenuItem value="summary">Laporan Ringkasan</MenuItem>
-              </Select>
-            </FormControl>
-          )}
-          
+        <Box sx={{ minWidth: 200 }}>
           <SearchInput
             searchQuery={searchQuery}
             onSearchChange={handleSearchChange}
@@ -1467,9 +1401,6 @@ const Report = ({ user }) => {
                     <TableCell sx={{ fontWeight: 'bold' }}>Harga Satuan</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Nilai Total</TableCell>
                     <TableCell sx={{ fontWeight: 'bold' }}>Keterangan</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>
-                      Aksi
-                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1531,24 +1462,12 @@ const Report = ({ user }) => {
                               <span>{item.remarks ? (item.remarks.length > 20 ? item.remarks.substring(0, 20) + '...' : item.remarks) : '-'}</span>
                             </Tooltip>
                           </TableCell>
-                          <TableCell align="center">
-                            {user && user.role === 'admin' && (
-                              <Stack direction="row" spacing={1} justifyContent="center">
-                                <IconButton size="small" color="primary" onClick={() => handleOpenEditForm(item)}>
-                                  <Edit fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small" color="error" onClick={() => handleOpenDeleteDialog(item)}>
-                                  <Delete fontSize="small" />
-                                </IconButton>
-                              </Stack>
-                            )}
-                          </TableCell>
                         </TableRow>
                       );
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={12} align="center" sx={{ py: 3 }}>
+                      <TableCell colSpan={11} align="center" sx={{ py: 3 }}>
                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 2 }}>
                           <InfoOutlined sx={{ fontSize: 40, color: theme.palette.text.secondary, mb: 1 }} />
                           <Typography variant="body2" color="text.secondary">
@@ -1614,7 +1533,7 @@ const Report = ({ user }) => {
       </Stack>
 
       {/* Form Dialog untuk Tambah/Edit Laporan */}
-      {user && user.role === 'admin' && (
+      {user && user.role === 'admin' && reportTab === 0 && (
         <ReportForm
           open={openForm}
           onClose={() => setOpenForm(false)}
