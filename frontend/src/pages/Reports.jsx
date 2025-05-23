@@ -330,11 +330,6 @@ const Report = ({ user }) => {
     setPage(newPage);
   };
 
-  // Handler untuk menyegarkan data
-  const handleRefresh = () => {
-    fetchReportData();
-  };
-
   // Handler untuk membuka form tambah laporan
   const handleOpenAddForm = () => {
     setIsEdit(false);
@@ -1027,7 +1022,7 @@ const Report = ({ user }) => {
         justifyContent="space-between"
         mb={3}
       >
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
           {user && user.role === 'admin' && (
             <Button 
               variant="contained" 
@@ -1035,6 +1030,7 @@ const Report = ({ user }) => {
               onClick={handleOpenAddForm}
               startIcon={<AddIcon />}
               sx={{ minWidth: { xs: '100%', sm: 120 } }}
+              fullWidth={true}
             >
               Tambah {reportTab === 0 ? 'Laporan' : 'Stok'}
             </Button>
@@ -1046,6 +1042,9 @@ const Report = ({ user }) => {
               onClick={handleFilterClick}
               startIcon={<FilterList />}
               color="primary"
+              size="medium"
+              sx={{ minWidth: { xs: '100%', sm: 120 } }}
+              fullWidth={true}
             >
               Filter
             </Button>
@@ -1209,6 +1208,9 @@ const Report = ({ user }) => {
               startIcon={<FileDownload />}
               onClick={handleExportClick}
               color="primary"
+              size="medium"
+              sx={{ minWidth: { xs: '100%', sm: 120 } }}
+              fullWidth={true}
             >
               Ekspor
             </Button>
@@ -1266,9 +1268,9 @@ const Report = ({ user }) => {
           </Menu>
         </Box>
         
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
           {reportTab === 0 && (
-            <FormControl size="small" sx={{ minWidth: 150 }}>
+            <FormControl size="small" sx={{ minWidth: 150, width: { xs: '100%', sm: 150 } }}>
               <InputLabel>Mode Laporan</InputLabel>
               <Select
                 value={reportMode}
@@ -1282,18 +1284,11 @@ const Report = ({ user }) => {
             </FormControl>
           )}
           
-          <Button 
-            variant="outlined" 
-            onClick={handleRefresh}
-            size="medium"
-          >
-            Segarkan
-          </Button>
-          
           <SearchInput
             searchQuery={searchQuery}
             onSearchChange={handleSearchChange}
             placeholder={`Cari ${reportTab === 0 ? 'laporan' : 'item'}...`}
+            sx={{ width: { xs: '100%', sm: 250 } }}
           />
         </Box>
       </Stack>
@@ -1339,10 +1334,7 @@ const Report = ({ user }) => {
             <CircularProgress />
           </Box>
         ) : (
-          <TableContainer
-            component={Paper}
-            sx={{ overflowX: 'auto' }}
-          >
+          <TableContainer component={Paper} sx={{ overflowX: 'auto', width: '100%', maxWidth: '100vw' }}>
             {/* Tabel Laporan Transaksi */}
             {reportTab === 0 && (
               <Table size="small">

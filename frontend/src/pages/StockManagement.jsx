@@ -26,9 +26,10 @@ import {
   InputLabel,
   Select,
   TextField,
-  MenuItem
+  MenuItem,
+  Grid
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, FilterList } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon, FilterList, ArrowDownward, ArrowUpward } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
 
 // Import filter, sort, search components
@@ -97,29 +98,6 @@ const StockManagement = ({ user }) => {
   const [openOutgoingForm, setOpenOutgoingForm] = useState(false);
   const [transactionLoading, setTransactionLoading] = useState(false); // Loading for incoming/outgoing transactions
   const [transactionError, setTransactionError] = useState(null); // Error for incoming/outgoing transactions
-
-  // Tambahkan state suppliers dan useEffect untuk fetch supplier dari API
-  const [suppliers, setSuppliers] = useState([]);
-  useEffect(() => {
-    const fetchSuppliers = async () => {
-      if (!API_URL) return;
-      const token = getAuthToken();
-      if (!token) return;
-      try {
-        const response = await fetch(`${API_URL}/api/suppliers`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setSuppliers(data);
-        }
-      } catch {}
-    };
-    fetchSuppliers();
-  }, [API_URL]);
 
   // Tambahkan state untuk filter popover
   const [filterAnchorEl, setFilterAnchorEl] = useState(null);
@@ -503,7 +481,6 @@ const StockManagement = ({ user }) => {
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={activeTab} onChange={handleTabChange} aria-label="stock management tabs">
           <Tab label="Inventory" />
-          <Tab label="Supplier" />
         </Tabs>
       </Box>
 
@@ -515,71 +492,76 @@ const StockManagement = ({ user }) => {
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }} justifyContent="space-between" mb={3}>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               {user && user.role === 'admin' && (
-                <Button variant="contained" color="primary" onClick={handleAddItem} sx={{ minWidth: { xs: '100%', sm: 120 } }}>Add New Item</Button>
+                <Button 
+                  variant="contained" 
+                  size="medium" 
+                  onClick={handleAddItem}
+                  startIcon={<EditIcon />}
+                  sx={{ minWidth: { xs: '100%', sm: 120 } }}
+                >
+                  Tambah Item
+                </Button>
               )}
               {user && user.role === 'admin' && (
-                <Button variant="outlined" color="primary" onClick={handleOpenIncomingForm} sx={{ minWidth: { xs: '100%', sm: 120 } }}>Incoming Goods</Button>
+                <Button 
+                  variant="outlined" 
+                  size="medium" 
+                  onClick={handleOpenIncomingForm}
+                  startIcon={<ArrowDownward />}
+                  color="primary"
+                  sx={{ minWidth: { xs: '100%', sm: 120 } }}
+                >
+                  Barang Masuk
+                </Button>
               )}
               {user && user.role === 'admin' && (
-                <Button variant="outlined" color="primary" onClick={handleOpenOutgoingForm} sx={{ minWidth: { xs: '100%', sm: 120 } }}>Outgoing Goods</Button>
+                <Button 
+                  variant="outlined" 
+                  size="medium" 
+                  onClick={handleOpenOutgoingForm}
+                  startIcon={<ArrowUpward />}
+                  color="primary"
+                  sx={{ minWidth: { xs: '100%', sm: 120 } }}
+                >
+                  Barang Keluar
+                </Button>
               )}
               <Tooltip title="Filter Inventory">
-                <Button variant="outlined" onClick={handleFilterClick} startIcon={<FilterList />} color="primary">Filter</Button>
+                <Button 
+                  variant="outlined" 
+                  size="medium" 
+                  onClick={handleFilterClick}
+                  startIcon={<FilterList />} 
+                  color="primary"
+                  sx={{ minWidth: { xs: '100%', sm: 120 } }}
+                >
+                  Filter
+                </Button>
               </Tooltip>
-              <Menu anchorEl={filterAnchorEl} open={openFilterMenu} onClose={handleFilterClose} PaperProps={{ elevation: 3, sx: { p: 2, width: 280 } }}>
-                <Typography variant="subtitle2" gutterBottom>Filter Berdasarkan</Typography>
-                <FormControl fullWidth margin="dense" size="small">
-                  <InputLabel>Kategori</InputLabel>
-                  <Select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} label="Kategori">
-                    <MenuItem value="">Semua</MenuItem>
-                    {[...new Set(items.map(item => item.category))].filter(Boolean).map(category => (
-                      <MenuItem key={category} value={category}>{category}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <FormControl fullWidth margin="dense" size="small">
-                  <InputLabel>Supplier</InputLabel>
-                  <Select value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)} label="Supplier">
-                    <MenuItem value="">Semua</MenuItem>
-                    {[...new Set(items.map(item => item.supplier))].filter(Boolean).map(supplier => (
-                      <MenuItem key={supplier} value={supplier}>{supplier}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>Rentang Tanggal</Typography>
-                  <TextField label="Dari Tanggal" type="date" name="startDate" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} InputLabelProps={{ shrink: true }} fullWidth size="small" margin="dense" />
-                  <TextField label="Sampai Tanggal" type="date" name="endDate" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} InputLabelProps={{ shrink: true }} fullWidth size="small" margin="dense" />
-                </Box>
-                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-                  <Button variant="outlined" size="small" onClick={handleFilterClose}>Batal</Button>
-                  <Button variant="contained" size="small" onClick={handleFilterApply}>Terapkan</Button>
-                </Box>
-              </Menu>
             </Box>
             <Box sx={{ minWidth: { xs: '100%', sm: 250 } }}>
-              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder="Search items..." fullWidth />
+              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder="Cari item..." fullWidth />
             </Box>
           </Stack>
 
           {/* Main Content - Items Table */}
           <Card sx={{ mt: 3 }}>
-            <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+            <TableContainer component={Paper} sx={{ overflowX: 'auto', width: '100%', maxWidth: '100vw' }}>
               <Table sx={{ minWidth: 650 }} size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: theme.palette.grey[100] }}>
-                    <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Nama Item</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Part Number</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Kategori</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Kuantitas</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Supplier</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>UOM</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Harga Satuan</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Nilai Total</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Keterangan</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Aksi</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', minWidth: 60 }}>ID</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', minWidth: 120 }}>Nama Item</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', minWidth: 100 }}>Part Number</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', minWidth: 100 }}>Kategori</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', minWidth: 80 }}>Kuantitas</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', minWidth: 100 }}>Supplier</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', minWidth: 80 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', minWidth: 60 }}>UOM</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', minWidth: 100 }}>Harga Satuan</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', minWidth: 100 }}>Nilai Total</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', minWidth: 120 }}>Keterangan</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold', minWidth: 80 }}>Aksi</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -742,10 +724,7 @@ const StockManagement = ({ user }) => {
             />
           )}
         </Box>
-      ) : (
-        // Tab Supplier
-        <SupplierManagement />
-      )}
+      ) : null}
     </Box>
   );
 };

@@ -130,7 +130,7 @@ const OutgoingGoodsForm = ({
       <DialogTitle>Record Outgoing Goods</DialogTitle>
       <DialogContent dividers sx={{ padding: theme.spacing(3) }}>
         <Box component="form" onSubmit={handleSubmit} noValidate>
-          <Grid container spacing={2}>
+          <Grid container direction="column" spacing={2}>
             {/* Item Selection */}
             <Grid item xs={12}>
               <FormControl fullWidth required error={!!validationErrors.itemId}>

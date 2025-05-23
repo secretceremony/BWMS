@@ -119,8 +119,80 @@ const changePassword = async (req, res) => {
   }
 };
 
+// Ambil semua user (khusus admin)
+const getAllUsers = async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Hanya admin yang boleh mengakses.' });
+  }
+  try {
+    const result = await pool.query('SELECT id, username, email, role FROM users ORDER BY id');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal mengambil data user.' });
+  }
+};
+
+// Tambah user baru (khusus admin)
+const createUser = async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Hanya admin yang boleh mengakses.' });
+  }
+  const { username, email, password, role } = req.body;
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: 'Username, email, dan password wajib diisi.' });
+  }
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      'INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role',
+      [username, email, hashedPassword, role || 'manager']
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal menambah user.' });
+  }
+};
+
+// Update user (khusus admin)
+const updateUser = async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Hanya admin yang boleh mengakses.' });
+  }
+  const { id } = req.params;
+  const { username, email, role } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE users SET username=$1, email=$2, role=$3 WHERE id=$4 RETURNING id, username, email, role',
+      [username, email, role, id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ error: 'User tidak ditemukan.' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal update user.' });
+  }
+};
+
+// Hapus user (khusus admin)
+const deleteUser = async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Hanya admin yang boleh mengakses.' });
+  }
+  const { id } = req.params;
+  try {
+    const result = await pool.query('DELETE FROM users WHERE id=$1 RETURNING id', [id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'User tidak ditemukan.' });
+    res.json({ message: 'User berhasil dihapus.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal hapus user.' });
+  }
+};
+
 module.exports = {
   getUser,
   updateProfile,
-  changePassword
+  changePassword,
+  getAllUsers,
+  createUser,
+  updateUser,
+  deleteUser
 };

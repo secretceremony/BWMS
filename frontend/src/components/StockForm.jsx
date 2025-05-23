@@ -227,10 +227,10 @@ const handleSubmit = (event) => {
       <DialogContent dividers>
         {/* Hilangkan component="form" dan onSubmit di sini karena handleSubmit dipanggil di DialogActions */}
         <Box sx={{ mt: -1 }}> {/* Atur margin di Box */}
-           <Grid container spacing={2}>
+           <Grid container direction="column" spacing={2}>
               {/* ID (hanya tampilkan jika edit, tidak bisa diedit) */}
                {initialData && (
-                   <Grid item xs={12} sm={6}>
+                   <Grid item xs={12}>
                        <TextField
                            label="ID"
                            value={formData.id || ''} // Pastikan value tidak null/undefined untuk TextField
@@ -240,7 +240,7 @@ const handleSubmit = (event) => {
                        />
                    </Grid>
                )}
-              <Grid item xs={12} sm={ initialData ? 6 : 12}>
+              <Grid item xs={12}>
                    <TextField
                        label="Nama"
                        name="name"
@@ -252,7 +252,7 @@ const handleSubmit = (event) => {
                    />
                </Grid>
 
-               <Grid item xs={12} sm={6}>
+               <Grid item xs={12}>
                    <TextField
                        label="Part Number"
                        name="part_number"
@@ -264,7 +264,7 @@ const handleSubmit = (event) => {
                    />
                </Grid>
 
-               <Grid item xs={12} sm={6}>
+               <Grid item xs={12}>
                    <TextField
                        label="Kategori"
                        name="category"
@@ -276,7 +276,7 @@ const handleSubmit = (event) => {
                    />
                </Grid>
 
-               <Grid item xs={12} sm={6}>
+               <Grid item xs={12}>
                    <TextField
                        label="Stok"
                        name="stock"
@@ -289,7 +289,7 @@ const handleSubmit = (event) => {
                    />
                </Grid>
 
-               <Grid item xs={12} sm={6}>
+               <Grid item xs={12}>
                    <FormControl fullWidth required>
                        <InputLabel id="supplier-label">Supplier</InputLabel>
                        <Select
@@ -319,7 +319,7 @@ const handleSubmit = (event) => {
                    </FormControl>
                </Grid>
 
-               <Grid item xs={12} sm={6}>
+               <Grid item xs={12}>
                    <FormControl fullWidth required>
                        <InputLabel id="uom-label">Unit of Measure</InputLabel>
                        <Select
@@ -338,7 +338,7 @@ const handleSubmit = (event) => {
                    </FormControl>
                </Grid>
 
-               <Grid item xs={12} sm={6}>
+               <Grid item xs={12}>
                    <TextField
                        label="Harga"
                        name="price"

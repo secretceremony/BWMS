@@ -13,4 +13,10 @@ router.put("/profile/update", authenticateToken, userController.updateProfile);
 // Route to change user password (requires authentication)
 router.post("/profile/change-password", authenticateToken, userController.changePassword);
 
+// Endpoint admin untuk kelola user
+router.get('/users', authenticateToken, userController.getAllUsers);
+router.post('/users', authenticateToken, userController.createUser);
+router.put('/users/:id', authenticateToken, userController.updateUser);
+router.delete('/users/:id', authenticateToken, userController.deleteUser);
+
 module.exports = router;

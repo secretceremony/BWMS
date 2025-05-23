@@ -15,9 +15,15 @@ import {
   CardContent, // Import CardContent
   Divider, // Import Divider for separation
   useTheme, // Import useTheme
-  IconButton // Import untuk tombol ikon
+  IconButton, // Import untuk tombol ikon
+  Tabs,
+  Tab,
+  Stack
 } from '@mui/material';
 import { Save as SaveIcon, Visibility, VisibilityOff, LockReset } from '@mui/icons-material';
+import EditProfileForm from '../components/EditProfileForm';
+import ChangePasswordForm from '../components/ChangePasswordForm';
+import UserManagement from '../components/UserManagement';
 
 // Base URL for your backend API
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -42,6 +48,8 @@ const Profile = ({ user: userProp }) => {
   const [showCurrentPassword, setShowCurrentPassword] = React.useState(false);
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+
+  const [tab, setTab] = React.useState(0);
 
   // Function to fetch user data - Modified to include Authorization header
   const fetchUser = async () => {
@@ -328,23 +336,25 @@ const Profile = ({ user: userProp }) => {
 
   // Render loading state if user is null and no userProp was provided
   if (!user && !userProp) {
-     return (
-       <Box sx={{ p: theme.spacing(3), textAlign: 'center' }}>
-         <CircularProgress />
-         <Typography variant="h6" sx={{ mt: theme.spacing(2) }}>Loading user profile...</Typography>
-         {/* Display Snackbar if loading fails */}
-         <Snackbar
-           open={snackbarOpen}
-           autoHideDuration={6000} // Keep error messages longer
-           onClose={handleSnackbarClose}
-           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-         >
-           <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
-             {snackbarMessage}
-           </Alert>
-         </Snackbar>
-       </Box>
-     );
+    return (
+      <Box sx={{ p: theme.spacing(3), textAlign: 'center' }}>
+        <Typography variant="h6" color="error" sx={{ mb: 2 }}>
+          Gagal mengambil data user. Silakan cek koneksi atau login ulang.
+        </Typography>
+        <Button variant="contained" color="primary" sx={{ mr: 2 }} onClick={() => window.location.reload()}>Coba Lagi</Button>
+        <Button variant="outlined" color="secondary" onClick={() => window.location.href = '/login'}>Ke Login</Button>
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={6000}
+          onClose={handleSnackbarClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+            {snackbarMessage}
+          </Alert>
+        </Snackbar>
+      </Box>
+    );
   }
 
   // Render profile form if user data is available
@@ -370,184 +380,43 @@ const Profile = ({ user: userProp }) => {
 
 
   return (
-    <Box sx={{ p: theme.spacing(3) }}> {/* Use theme spacing */}
-
+    <Box sx={{ p: { xs: 1, sm: 3 } }}> {/* Responsive padding */}
       {/* Section 1: Profile Overview (Read-only) */}
-      <Card elevation={3} sx={{ mb: theme.spacing(4) }}> {/* Use theme spacing for bottom margin */}
+      <Card elevation={3} sx={{ mb: { xs: 2, sm: 4 } }}>
         <CardContent>
           <Typography variant="h5" gutterBottom>
             Profile Information
           </Typography>
-          <Divider sx={{ mb: theme.spacing(2) }} /> {/* Use theme spacing */}
-
-          <Grid container spacing={theme.spacing(3)} alignItems="center" direction={{ xs: 'column', sm: 'row' }}>
-            <Grid item>
-              {/* Avatar with theme secondary color */}
-              <Tooltip title="User Avatar" arrow> {/* Adjusted tooltip title */}
-                <Avatar sx={{ width: 80, height: 80, fontSize: 28, mb: { xs: 2, sm: 0 } }}>
-                  {user.username ? user.username.split(' ').map(word => word[0]).join('').toUpperCase() : '?'}
-                </Avatar>
-              </Tooltip>
-            </Grid>
-            <Grid item xs={12} sm container> {/* Use sm container for better responsiveness */}
-              <Grid item xs direction="column"> {/* Content column */}
-                <Typography variant="body1" gutterBottom> {/* Use body1 for main info */}
-                  <strong>Username:</strong> {user.username || 'N/A'}
-                </Typography>
-                <Typography variant="body1" gutterBottom> {/* Use body1 for main info */}
-                  <strong>Email:</strong> {user.email || 'N/A'}
-                </Typography>
-                <Typography variant="body1"> {/* Use body1 for main info */}
-                  <strong>Role:</strong> {user.role || 'N/A'}
-                </Typography>
-              </Grid>
-            </Grid>
-          </Grid>
+          <Divider sx={{ mb: 2 }} />
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+            <Tooltip title="User Avatar" arrow>
+              <Avatar sx={{ width: 80, height: 80, fontSize: 28, mb: { xs: 2, sm: 0 } }}>
+                {user.username ? user.username.split(' ').map(word => word[0]).join('').toUpperCase() : '?'}
+              </Avatar>
+            </Tooltip>
+            <Box>
+              <Typography variant="body1" gutterBottom>
+                <strong>Username:</strong> {user.username || 'N/A'}
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                <strong>Email:</strong> {user.email || 'N/A'}
+              </Typography>
+              <Typography variant="body1">
+                <strong>Role:</strong> {user.role || 'N/A'}
+              </Typography>
+            </Box>
+          </Stack>
         </CardContent>
       </Card>
-
-      {/* Section 2: Editable Profile Form */}
-      <Card elevation={3}> {/* Another card for the form */}
-        <CardContent>
-          <Typography variant="h5" gutterBottom>
-            Edit Profile
-          </Typography>
-          <Divider sx={{ mb: theme.spacing(2) }} /> {/* Use theme spacing */}
-
-
-          <Grid container spacing={theme.spacing(2)}> {/* Use Grid for form fields spacing */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Username"
-                value={editingUsername}
-                onChange={(e) => setEditingUsername(e.target.value)}
-                margin="normal"
-                variant="outlined"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Email"
-                value={editingEmail}
-                onChange={(e) => setEditingEmail(e.target.value)}
-                margin="normal"
-                variant="outlined"
-                type="email"
-              />
-            </Grid>
-          </Grid>
-
-
-          <Button
-            variant="contained"
-            // Use theme spacing for top margin
-            sx={{ mt: theme.spacing(3) }}
-            onClick={handleUpdateProfile}
-            disabled={isSaving}
-            startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-          >
-            {isSaving ? 'Saving...' : 'UPDATE PROFILE'}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Change Password Card */}
-      <Card>
-        <CardContent>
-          <Typography variant="h5" sx={{ mb: theme.spacing(3) }}>
-            Ubah Password
-          </Typography>
-
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Password Saat Ini"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                margin="normal"
-                variant="outlined"
-                type={showCurrentPassword ? 'text' : 'password'}
-                InputProps={{
-                  endAdornment: (
-                    <IconButton
-                      aria-label="toggle password visibility"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      edge="end"
-                    >
-                      {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Password Baru"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                margin="normal"
-                variant="outlined"
-                type={showNewPassword ? 'text' : 'password'}
-                InputProps={{
-                  endAdornment: (
-                    <IconButton
-                      aria-label="toggle password visibility"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      edge="end"
-                    >
-                      {showNewPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Konfirmasi Password Baru"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                margin="normal"
-                variant="outlined"
-                type={showConfirmPassword ? 'text' : 'password'}
-                InputProps={{
-                  endAdornment: (
-                    <IconButton
-                      aria-label="toggle password visibility"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      edge="end"
-                    >
-                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  ),
-                }}
-              />
-            </Grid>
-          </Grid>
-
-          <Box sx={{ mt: theme.spacing(2), display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<LockReset />}
-              onClick={handleChangePassword}
-              disabled={isChangingPassword}
-              sx={{ mt: theme.spacing(1) }}
-            >
-              {isChangingPassword ? 'Mengubah...' : 'Ubah Password'}
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Snackbar for notifications */}
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, minHeight: 40 }} variant="fullWidth">
+        <Tab label="Edit Profile" sx={{ fontSize: { xs: 12, sm: 16 } }} />
+        <Tab label="Ubah Password" sx={{ fontSize: { xs: 12, sm: 16 } }} />
+      </Tabs>
+      {tab === 0 && <EditProfileForm user={user} onUserUpdate={setUser} />}
+      {tab === 1 && <ChangePasswordForm user={user} />}
       <Snackbar
         open={snackbarOpen}
-        autoHideDuration={4000} // Shorter duration for success/warning
+        autoHideDuration={4000}
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
@@ -555,6 +424,9 @@ const Profile = ({ user: userProp }) => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
+      {user && user.role === 'admin' && (
+        <UserManagement />
+      )}
     </Box>
   );
 };

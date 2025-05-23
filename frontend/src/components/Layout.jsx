@@ -25,6 +25,7 @@ const Layout = ({ onLogout, user }) => {
     { text: 'Dashboard', icon: <Home />, path: '/dashboard' },
     { text: 'Stock Management', icon: <Inventory />, path: '/stock-management' },
     { text: 'Reports', icon: <Assessment />, path: '/reports' },
+    { text: 'Supplier Management', icon: <Person />, path: '/supplier-management' },
     { text: 'Profile', icon: <Person />, path: '/profile' },
     { text: 'History', icon: <History />, path: '/history' },
   ];

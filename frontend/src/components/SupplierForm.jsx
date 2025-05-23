@@ -117,7 +117,7 @@ const SupplierForm = ({
             </Grid>
             
             {/* Kontak Person */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 label="Kontak Person"
                 name="contact_person"
@@ -129,7 +129,7 @@ const SupplierForm = ({
             </Grid>
             
             {/* No. Telepon */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 label="No. Telepon"
                 name="phone"

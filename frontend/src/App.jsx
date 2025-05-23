@@ -40,6 +40,7 @@ import Profile from './pages/Profile';
 import StockManagement from './pages/StockManagement';
 import Report from './pages/Reports';
 import History from './pages/History';
+import SupplierManagement from './components/SupplierManagement';
 
 // --- Components ---
 import Layout from './components/Layout'; 
@@ -305,6 +306,7 @@ function App() {
             <Route path="stock-management" element={<StockManagement user={user} />} />
             <Route path="reports" element={<Report user={user} />} />
             <Route path="history" element={<History user={user} />} />
+            <Route path="supplier-management" element={<SupplierManagement user={user} />} />
           </Route>
 
           {/* Catch-all 404 Route */}
