@@ -17,7 +17,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions
+  DialogActions,
+  Tooltip
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import SupplierForm from './SupplierForm';
@@ -243,14 +244,14 @@ const SupplierManagement = () => {
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
-              <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>Nama</TableCell>
-                <TableCell>Kontak Person</TableCell>
-                <TableCell>Telepon</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Alamat</TableCell>
-                <TableCell>Aksi</TableCell>
+              <TableRow sx={{ bgcolor: '#f5f5f5' }}>
+                <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Nama</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Kontak Person</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Telepon</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Alamat</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Aksi</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -278,14 +279,24 @@ const SupplierManagement = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                suppliers.map((supplier) => (
-                  <TableRow key={supplier.id}>
+                suppliers.map((supplier, idx) => (
+                  <TableRow
+                    key={supplier.id}
+                    hover
+                    sx={{
+                      backgroundColor: !supplier.contact_person ? '#fffde7' : idx % 2 === 0 ? '#fafafa' : 'white'
+                    }}
+                  >
                     <TableCell>{supplier.id}</TableCell>
                     <TableCell>{supplier.name}</TableCell>
-                    <TableCell>{supplier.contact_person || '-'}</TableCell>
+                    <TableCell>{supplier.contact_person || <span style={{color:'#fbc02d'}}>Tidak ada</span>}</TableCell>
                     <TableCell>{supplier.phone || '-'}</TableCell>
                     <TableCell>{supplier.email || '-'}</TableCell>
-                    <TableCell>{supplier.address || '-'}</TableCell>
+                    <TableCell>
+                      <Tooltip title={supplier.address || 'Tidak ada alamat'}>
+                        <span>{supplier.address ? (supplier.address.length > 25 ? supplier.address.substring(0, 25) + '...' : supplier.address) : '-'}</span>
+                      </Tooltip>
+                    </TableCell>
                     <TableCell>
                       <IconButton 
                         size="small" 

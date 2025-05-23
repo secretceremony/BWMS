@@ -321,25 +321,6 @@ const handleSubmit = (event) => {
 
                <Grid item xs={12} sm={6}>
                    <FormControl fullWidth required>
-                       <InputLabel id="status-label">Status</InputLabel>
-                       <Select
-                           labelId="status-label"
-                           name="status"
-                           value={formData.status}
-                           onChange={handleChange}
-                           label="Status"
-                       >
-                           {statuses.map((status) => (
-                               <MenuItem key={status} value={status}>
-                                   {status}
-                               </MenuItem>
-                           ))}
-                       </Select>
-                   </FormControl>
-               </Grid>
-
-               <Grid item xs={12} sm={6}>
-                   <FormControl fullWidth required>
                        <InputLabel id="uom-label">Unit of Measure</InputLabel>
                        <Select
                            labelId="uom-label"

@@ -37,31 +37,25 @@ const ReportForm = ({
   const theme = useTheme();
 
   const [formData, setFormData] = useState({
-    itemId: '',
-    transactionType: 'incoming', // default ke 'incoming'
+    itemId: [],
+    transactionType: 'incoming',
     quantity: '',
     unitPrice: '',
     totalValue: '',
-    source: '',  // supplier/customer
-    documentRef: '', // referensi dokumen (nomor PO, nomor surat jalan, dsb)
-    location: '', // lokasi penyimpanan
+    source: '',
     remarks: '',
     transactionDate: new Date().toISOString().split('T')[0],
-    categoryTags: [], // tag kategori untuk pengelompokan
+    categoryTags: [],
   });
 
   const [stockItems, setStockItems] = useState([]);
-  const [suppliers, setSuppliers] = useState([
-    { id: 1, name: 'PT Supplier Utama' }, 
-    { id: 2, name: 'CV Mitra Sejahtera' },
-    { id: 3, name: 'UD Makmur Jaya' }
-  ]); // Sample data, idealnya diambil dari API
+  const [suppliers, setSuppliers] = useState([]);
   const [locations, setLocations] = useState([
     'Gudang Utama', 'Gudang B', 'Rak Depan', 'Rak Belakang', 'Lemari Khusus'
   ]); // Sample data
   const [categories, setCategories] = useState([
-    'Elektronik', 'ATK', 'Furniture', 'Peralatan', 'Bahan Baku', 'Produk Jadi', 'Lain-lain'
-  ]); // Sample data
+    'Sparepart', 'Oli', 'Aki', 'Ban', 'Lainnya'
+  ]);
   
   const [itemsLoading, setItemsLoading] = useState(true);
   const [itemsError, setItemsError] = useState(null);
@@ -71,14 +65,12 @@ const ReportForm = ({
   // Reset form saat dialog ditutup
   const resetForm = () => {
     setFormData({
-      itemId: '',
+      itemId: [],
       transactionType: 'incoming',
       quantity: '',
       unitPrice: '',
       totalValue: '',
       source: '',
-      documentRef: '',
-      location: '',
       remarks: '',
       transactionDate: new Date().toISOString().split('T')[0],
       categoryTags: [],
@@ -92,23 +84,21 @@ const ReportForm = ({
   useEffect(() => {
     if (isEdit && editData && open) {
       setFormData({
-        itemId: editData.item_id || '',
+        itemId: editData.item_id || [],
         transactionType: editData.jenis === 'Stock In' ? 'incoming' : 'outgoing',
         quantity: editData.quantity || '',
         unitPrice: editData.unitPrice || '',
         totalValue: editData.totalValue || '',
         source: editData.source || '',
-        documentRef: editData.documentRef || '',
-        location: editData.location || '',
         remarks: editData.remarks || '',
         transactionDate: editData.tanggal || new Date().toISOString().split('T')[0],
         categoryTags: editData.categoryTags || [],
       });
       
       // Set selected item jika tersedia
-      if (editData.item_id) {
-        const item = stockItems.find(item => item.id === editData.item_id);
-        if (item) setSelectedItem(item);
+      if (editData.item_id && Array.isArray(editData.item_id)) {
+        const items = stockItems.filter(item => editData.item_id.includes(item.id));
+        if (items.length > 0) setSelectedItem(items);
       }
     } else if (open) {
       resetForm();
@@ -162,6 +152,30 @@ const ReportForm = ({
     }
   }, [open]);
 
+  // Fetch suppliers dari API saat form open
+  useEffect(() => {
+    if (open) {
+      const fetchSuppliers = async () => {
+        if (!API_URL) return;
+        const token = getAuthToken();
+        if (!token) return;
+        try {
+          const response = await fetch(`${API_URL}/api/suppliers`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setSuppliers(data);
+          }
+        } catch {}
+      };
+      fetchSuppliers();
+    }
+  }, [open, API_URL]);
+
   // Handler perubahan input
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -193,23 +207,16 @@ const ReportForm = ({
     setValidationErrors((prevErrors) => ({ ...prevErrors, [name]: '' }));
   };
   
-  // Handler untuk Autocomplete item
+  // Handler untuk Autocomplete item multiple
   const handleItemChange = (event, newValue) => {
+    setFormData(prev => ({
+      ...prev,
+      itemId: newValue.map(item => item.id),
+      unitPrice: newValue.length === 1 ? newValue[0].price || '' : '',
+      totalValue: newValue.length === 1 && formData.quantity ? (formData.quantity * (newValue[0].price || 0)).toFixed(2) : ''
+    }));
     setSelectedItem(newValue);
-    if (newValue) {
-      setFormData(prev => ({
-        ...prev,
-        itemId: newValue.id,
-        unitPrice: newValue.price || ''
-      }));
-      setValidationErrors(prev => ({ ...prev, itemId: '' }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        itemId: '',
-        unitPrice: ''
-      }));
-    }
+    setValidationErrors(prev => ({ ...prev, itemId: '' }));
   };
   
   // Handler untuk kategori tags
@@ -223,7 +230,7 @@ const ReportForm = ({
   // Validasi form
   const validate = () => {
     let errors = {};
-    if (!formData.itemId) errors.itemId = 'Pemilihan item diperlukan.';
+    if (!formData.itemId.length) errors.itemId = 'Pemilihan item diperlukan.';
     if (!formData.transactionType) errors.transactionType = 'Tipe transaksi diperlukan.';
     if (formData.quantity === '' || Number(formData.quantity) <= 0 || isNaN(Number(formData.quantity))) {
       errors.quantity = 'Kuantitas harus berupa angka positif.';
@@ -260,8 +267,6 @@ const ReportForm = ({
       unitPrice: formData.unitPrice ? Number(formData.unitPrice) : undefined,
       totalValue: formData.totalValue ? Number(formData.totalValue) : undefined,
       source: formData.source,
-      documentRef: formData.documentRef,
-      location: formData.location,
       remarks: formData.remarks,
       transactionDate: formData.transactionDate,
       categoryTags: formData.categoryTags,
@@ -276,17 +281,9 @@ const ReportForm = ({
       <DialogTitle>{isEdit ? 'Edit Laporan' : 'Tambah Laporan Baru'}</DialogTitle>
       <DialogContent dividers sx={{ padding: theme.spacing(3) }}>
         <Box component="form" onSubmit={handleSubmit} noValidate>
-          <Grid container spacing={theme.spacing(2)}>
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" gutterBottom color="primary">
-                Informasi Dasar Transaksi
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-            </Grid>
-            
-            {/* Transaction Type */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth required error={!!validationErrors.transactionType}>
+          <Grid container direction="column" spacing={2}>
+            <Grid item>
+              <FormControl fullWidth required error={!!validationErrors.transactionType} sx={{ mb: 2 }}>
                 <InputLabel>Tipe Transaksi</InputLabel>
                 <Select
                   name="transactionType"
@@ -302,9 +299,7 @@ const ReportForm = ({
                 <FormHelperText error>{validationErrors.transactionType}</FormHelperText>
               </FormControl>
             </Grid>
-            
-            {/* Transaction Date */}
-            <Grid item xs={12} sm={6}>
+            <Grid item>
               <TextField
                 label="Tanggal Transaksi"
                 name="transactionDate"
@@ -316,26 +311,11 @@ const ReportForm = ({
                 error={!!validationErrors.transactionDate}
                 helperText={validationErrors.transactionDate}
                 InputLabelProps={{ shrink: true }}
+                sx={{ mb: 2 }}
               />
             </Grid>
-
-            {/* Document Reference */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Referensi Dokumen"
-                name="documentRef"
-                value={formData.documentRef}
-                onChange={handleChange}
-                fullWidth
-                placeholder="Contoh: PO-2023-001, SJ-2023-001"
-                InputLabelProps={{ shrink: true }}
-                helperText="Nomor PO, Surat Jalan, atau dokumen lainnya"
-              />
-            </Grid>
-            
-            {/* Source/Supplier/Customer */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth error={!!validationErrors.source}>
+            <Grid item>
+              <FormControl fullWidth error={!!validationErrors.source} sx={{ mb: 2 }}>
                 <InputLabel>{formData.transactionType === 'incoming' ? 'Supplier' : 'Customer/Tujuan'}</InputLabel>
                 <Select
                   name="source"
@@ -352,27 +332,19 @@ const ReportForm = ({
                 <FormHelperText error>{validationErrors.source}</FormHelperText>
               </FormControl>
             </Grid>
-            
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" gutterBottom color="primary" sx={{ mt: 2 }}>
-                Informasi Item & Kuantitas
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-            </Grid>
-           
-            {/* Item Selection - Using Autocomplete for better UX */}
-            <Grid item xs={12}>
-              <FormControl fullWidth required error={!!validationErrors.itemId}>
+            <Grid item>
+              <FormControl fullWidth required error={!!validationErrors.itemId} sx={{ mb: 2 }}>
                 <Autocomplete
+                  multiple
                   options={stockItems}
                   getOptionLabel={(option) => `${option.name} (${option.id})`}
                   loading={itemsLoading}
-                  value={selectedItem}
+                  value={selectedItem || []}
                   onChange={handleItemChange}
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Pilih Item"
+                      label="Pilih Item (bisa lebih dari satu)"
                       required
                       error={!!validationErrors.itemId}
                       helperText={validationErrors.itemId}
@@ -382,9 +354,7 @@ const ReportForm = ({
                 />
               </FormControl>
             </Grid>
-
-            {/* Quantity */}
-            <Grid item xs={12} sm={4}>
+            <Grid item>
               <TextField
                 label="Jumlah"
                 name="quantity"
@@ -397,61 +367,35 @@ const ReportForm = ({
                 helperText={validationErrors.quantity}
                 InputLabelProps={{ shrink: true }}
                 inputProps={{ min: 1 }}
+                sx={{ mb: 2 }}
               />
             </Grid>
-            
-            {/* Unit Price */}
-            <Grid item xs={12} sm={4}>
+            <Grid item>
               <TextField
                 label="Harga Satuan"
                 name="unitPrice"
                 value={formData.unitPrice}
-                onChange={handleChange}
                 fullWidth
                 type="number"
-                error={!!validationErrors.unitPrice}
-                helperText={validationErrors.unitPrice || "Kosongkan jika tidak diketahui"}
+                InputProps={{ readOnly: true }}
                 InputLabelProps={{ shrink: true }}
-                inputProps={{ min: 0 }}
+                helperText="Otomatis dari data item"
+                sx={{ mb: 2 }}
               />
             </Grid>
-            
-            {/* Total Value - Auto calculated but can be manually adjusted */}
-            <Grid item xs={12} sm={4}>
+            <Grid item>
               <TextField
                 label="Total Nilai"
                 name="totalValue"
                 value={formData.totalValue}
-                onChange={handleChange}
                 fullWidth
-                disabled={formData.unitPrice && formData.quantity}
+                InputProps={{ readOnly: true }}
                 InputLabelProps={{ shrink: true }}
-                helperText="Nilai dihitung otomatis"
+                helperText="Otomatis dari data item"
+                sx={{ mb: 2 }}
               />
             </Grid>
-            
-            {/* Storage Location */}
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth error={!!validationErrors.location}>
-                <InputLabel>Lokasi Penyimpanan</InputLabel>
-                <Select
-                  name="location"
-                  value={formData.location}
-                  onChange={handleChange}
-                  displayEmpty
-                  label="Lokasi Penyimpanan"
-                >
-                  <MenuItem value="">-</MenuItem>
-                  {locations.map((location, index) => (
-                    <MenuItem key={index} value={location}>{location}</MenuItem>
-                  ))}
-                </Select>
-                <FormHelperText error>{validationErrors.location}</FormHelperText>
-              </FormControl>
-            </Grid>
-            
-            {/* Category Tags - Multiple selection */}
-            <Grid item xs={12} sm={6}>
+            <Grid item>
               <Autocomplete
                 multiple
                 options={categories}
@@ -477,11 +421,10 @@ const ReportForm = ({
                     fullWidth
                   />
                 )}
+                sx={{ mb: 2 }}
               />
             </Grid>
-            
-            {/* Remarks */}
-            <Grid item xs={12}>
+            <Grid item>
               <TextField
                 label="Keterangan"
                 name="remarks"

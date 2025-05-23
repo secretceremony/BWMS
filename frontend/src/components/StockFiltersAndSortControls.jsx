@@ -20,6 +20,7 @@ const StockFiltersAndSortControls = ({
   onFilterSupplierChange,
   sortOrder,
   onSortOrderChange,
+  suppliers,
   // Jika ada filter status/uom di sini (bukan di form), sesuaikan props
 }) => {
   const controlStyles = {
@@ -33,27 +34,6 @@ const StockFiltersAndSortControls = ({
 
   return (
     <Stack direction="row" spacing={2} flexWrap="wrap">
-      {/* Filter Category (sekarang Select jika Anda ingin dropdown opsi di sini) */}
-      {/* Mengembalikan ke Select berdasarkan diskusi sebelumnya */}
-       <FormControl size="small" sx={{ ...controlStyles, minWidth: 150 }}>
-           <InputLabel shrink>Category</InputLabel>
-           <Select
-             displayEmpty
-             value={filterCategory}
-             onChange={onFilterCategoryChange}
-             label="Category"
-             inputProps={{ 'aria-label': 'Filter by Category' }}
-           >
-             <MenuItem value=""><em>Filter by Category</em></MenuItem>
-             {/* Opsi hardcode atau ambil dari API */}
-             <MenuItem value="Electronics">Electronics</MenuItem>
-             <MenuItem value="Furniture">Furniture</MenuItem>
-             <MenuItem value="Apparel">Apparel</MenuItem>
-              <MenuItem value="Others">Others</MenuItem>
-           </Select>
-       </FormControl>
-
-
       {/* Filter Supplier (mengembalikan ke Select) */}
        <FormControl size="small" sx={{ ...controlStyles, minWidth: 150 }}>
            <InputLabel shrink>Supplier</InputLabel>
@@ -66,10 +46,9 @@ const StockFiltersAndSortControls = ({
            >
              <MenuItem value=""><em>Filter by Supplier</em></MenuItem>
              {/* Opsi hardcode atau ambil dari API */}
-             <MenuItem value="Supplier A">Supplier A</MenuItem>
-             <MenuItem value="Supplier B">Supplier B</MenuItem>
-             <MenuItem value="Supplier C">Supplier C</MenuItem>
-              <MenuItem value="Supplier D">Supplier D</MenuItem>
+             {suppliers.map(supplier => (
+               <MenuItem key={supplier.id} value={supplier.id}>{supplier.name}</MenuItem>
+             ))}
            </Select>
        </FormControl>
 

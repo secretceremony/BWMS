@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Stack, Typography, Card, CardContent, Avatar, useTheme, CircularProgress
+  Box, Stack, Typography, Card, CardContent, Avatar, useTheme, CircularProgress, Button, TextField
 } from '@mui/material';
 import {
   ArrowDownward as IncomingIcon,
@@ -28,6 +28,9 @@ const History = () => {
   const [loading, setLoading] = useState(true);
   // State for error messages
   const [error, setError] = useState(null);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [customMode, setCustomMode] = useState(false);
 
   // Fetch items data to map item_id to item names
   const fetchItems = async (token) => {
@@ -147,6 +150,30 @@ const History = () => {
   // Determine if there is data to display
   const hasHistory = historyData && historyData.length > 0;
 
+  // Fungsi untuk set preset tanggal
+  const setPresetRange = (days) => {
+    setCustomMode(false);
+    const now = new Date();
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const start = new Date(end);
+    start.setDate(end.getDate() - days + 1);
+    setStartDate(start.toISOString().split('T')[0]);
+    setEndDate(end.toISOString().split('T')[0]);
+  };
+
+  const handleCustom = () => {
+    setCustomMode(true);
+    setStartDate('');
+    setEndDate('');
+  };
+
+  // Filter data history sesuai range tanggal
+  const filteredHistory = historyData.filter(record => {
+    if (!startDate || !endDate) return true;
+    const tgl = new Date(record.transaction_date).toISOString().split('T')[0];
+    return tgl >= startDate && tgl <= endDate;
+  });
+
   return (
     <Box
       sx={{
@@ -170,11 +197,41 @@ const History = () => {
         </Box>
       )}
 
+      {/* Filter Preset */}
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        <Button variant="outlined" onClick={() => setPresetRange(7)}>7 Hari Terakhir</Button>
+        <Button variant="outlined" onClick={() => setPresetRange(30)}>1 Bulan Terakhir</Button>
+        <Button variant="outlined" onClick={() => setPresetRange(90)}>3 Bulan Terakhir</Button>
+        <Button variant="outlined" onClick={handleCustom}>Custom</Button>
+        {customMode && (
+          <>
+            <TextField
+              label="Dari Tanggal"
+              type="date"
+              size="small"
+              value={startDate || ''}
+              onChange={e => setStartDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ minWidth: 150 }}
+            />
+            <TextField
+              label="Sampai Tanggal"
+              type="date"
+              size="small"
+              value={endDate || ''}
+              onChange={e => setEndDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ minWidth: 150 }}
+            />
+          </>
+        )}
+      </Box>
+
       {/* Display History Data or Empty State */}
       {!loading && !error && (
         hasHistory ? (
           <Stack spacing={theme.spacing(2)}>
-            {historyData.map((record) => (
+            {filteredHistory.map((record) => (
               <Card
                 key={record.id} // Use record.id from the database
                 sx={{

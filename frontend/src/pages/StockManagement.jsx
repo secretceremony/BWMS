@@ -18,9 +18,17 @@ import {
   useTheme,
   useMediaQuery, // Import useMediaQuery for conditional rendering/styles
   Tabs,
-  Tab
+  Tab,
+  Chip,
+  Tooltip,
+  Menu,
+  FormControl,
+  InputLabel,
+  Select,
+  TextField,
+  MenuItem
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon, FilterList } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
 
 // Import filter, sort, search components
@@ -70,9 +78,6 @@ const StockManagement = () => {
   const [error, setError] = useState(null); // For main data fetching error
 
   // Filter, sort, search states
-  const [filterCategory, setFilterCategory] = useState('');
-  const [filterSupplier, setFilterSupplier] = useState('');
-  const [sortOrder, setSortOrder] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
   // State for delete confirmation modal
@@ -92,7 +97,41 @@ const StockManagement = () => {
   const [openOutgoingForm, setOpenOutgoingForm] = useState(false);
   const [transactionLoading, setTransactionLoading] = useState(false); // Loading for incoming/outgoing transactions
   const [transactionError, setTransactionError] = useState(null); // Error for incoming/outgoing transactions
-  // --- End New States ---
+
+  // Tambahkan state suppliers dan useEffect untuk fetch supplier dari API
+  const [suppliers, setSuppliers] = useState([]);
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      if (!API_URL) return;
+      const token = getAuthToken();
+      if (!token) return;
+      try {
+        const response = await fetch(`${API_URL}/api/suppliers`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setSuppliers(data);
+        }
+      } catch {}
+    };
+    fetchSuppliers();
+  }, [API_URL]);
+
+  // Tambahkan state untuk filter popover
+  const [filterAnchorEl, setFilterAnchorEl] = useState(null);
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterSupplier, setFilterSupplier] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+
+  const openFilterMenu = Boolean(filterAnchorEl);
+  const handleFilterClick = (event) => { setFilterAnchorEl(event.currentTarget); };
+  const handleFilterClose = () => { setFilterAnchorEl(null); };
+  const handleFilterApply = () => { setFilterAnchorEl(null); };
 
   // Handler untuk perubahan tab
   const handleTabChange = (event, newValue) => {
@@ -113,7 +152,7 @@ const StockManagement = () => {
     const queryString = buildQueryString({
         filterCategory: filterCategory,
         filterSupplier: filterSupplier,
-        sortOrder: sortOrder,
+        sortOrder: '',
         searchQuery: searchQuery
     });
 
@@ -170,7 +209,7 @@ const StockManagement = () => {
         setError("Application configuration error: API URL is not set.");
         setLoading(false);
     }
-  }, [filterCategory, filterSupplier, sortOrder, searchQuery, API_URL, activeTab]); // Added API_URL and activeTab dependency for safety
+  }, [filterCategory, filterSupplier, searchQuery, API_URL, activeTab]); // Added API_URL and activeTab dependency for safety
 
 
   // --- Handler for Delete Confirmation Modal and Delete Action ---
@@ -453,12 +492,6 @@ const StockManagement = () => {
 
   // --- Handler for Search Input ---
   const handleSearchChange = (event) => { setSearchQuery(event.target.value); };
-  // --- Handler for Filter Category Change ---
-  const handleFilterCategoryChange = (event) => { setFilterCategory(event.target.value); };
-  // --- Handler for Filter Supplier Change ---
-  const handleFilterSupplierChange = (event) => { setFilterSupplier(event.target.value); };
-  // --- Handler for Sort Order Change ---
-  const handleSortOrderChange = (event) => { setSortOrder(event.target.value); };
 
   return (
     <Box sx={{ p: 3 }}>
@@ -478,75 +511,69 @@ const StockManagement = () => {
       {activeTab === 0 ? (
         // Tab Inventory
         <Box>
-          {/* Action Buttons */}
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={2}
-            justifyContent="space-between"
-            alignItems={{ xs: 'stretch', sm: 'center' }}
-            sx={{ mb: 3 }}
-          >
+          {/* Action Bar: Filter, Search, Add */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }} justifyContent="space-between" mb={3}>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleAddItem}
-              >
-                Add New Item
-              </Button>
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={handleOpenIncomingForm}
-              >
-                Incoming Goods
-              </Button>
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={handleOpenOutgoingForm}
-              >
-                Outgoing Goods
-              </Button>
+              <Button variant="contained" color="primary" onClick={handleAddItem}>Add New Item</Button>
+              <Button variant="outlined" color="primary" onClick={handleOpenIncomingForm}>Incoming Goods</Button>
+              <Button variant="outlined" color="primary" onClick={handleOpenOutgoingForm}>Outgoing Goods</Button>
+              <Tooltip title="Filter Inventory">
+                <Button variant="outlined" onClick={handleFilterClick} startIcon={<FilterList />} color="primary">Filter</Button>
+              </Tooltip>
+              <Menu anchorEl={filterAnchorEl} open={openFilterMenu} onClose={handleFilterClose} PaperProps={{ elevation: 3, sx: { p: 2, width: 280 } }}>
+                <Typography variant="subtitle2" gutterBottom>Filter Berdasarkan</Typography>
+                <FormControl fullWidth margin="dense" size="small">
+                  <InputLabel>Kategori</InputLabel>
+                  <Select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} label="Kategori">
+                    <MenuItem value="">Semua</MenuItem>
+                    {[...new Set(items.map(item => item.category))].filter(Boolean).map(category => (
+                      <MenuItem key={category} value={category}>{category}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth margin="dense" size="small">
+                  <InputLabel>Supplier</InputLabel>
+                  <Select value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)} label="Supplier">
+                    <MenuItem value="">Semua</MenuItem>
+                    {[...new Set(items.map(item => item.supplier))].filter(Boolean).map(supplier => (
+                      <MenuItem key={supplier} value={supplier}>{supplier}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>Rentang Tanggal</Typography>
+                  <TextField label="Dari Tanggal" type="date" name="startDate" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} InputLabelProps={{ shrink: true }} fullWidth size="small" margin="dense" />
+                  <TextField label="Sampai Tanggal" type="date" name="endDate" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} InputLabelProps={{ shrink: true }} fullWidth size="small" margin="dense" />
+                </Box>
+                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+                  <Button variant="outlined" size="small" onClick={handleFilterClose}>Batal</Button>
+                  <Button variant="contained" size="small" onClick={handleFilterApply}>Terapkan</Button>
+                </Box>
+              </Menu>
             </Box>
-
-            {/* Search Input - Consider moving to filters section if space is tight */}
             <Box sx={{ minWidth: { xs: '100%', sm: 250 } }}>
-              <SearchInput
-                value={searchQuery}
-                onChange={handleSearchChange}
-                placeholder="Search items..."
-                fullWidth
-              />
+              <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder="Search items..." fullWidth />
             </Box>
           </Stack>
-
-          {/* Filters and Sorting */}
-          <StockFiltersAndSortControls
-            filterCategory={filterCategory}
-            filterSupplier={filterSupplier}
-            sortOrder={sortOrder}
-            onFilterCategoryChange={handleFilterCategoryChange}
-            onFilterSupplierChange={handleFilterSupplierChange}
-            onSortOrderChange={handleSortOrderChange}
-          />
 
           {/* Main Content - Items Table */}
           <Card sx={{ mt: 3 }}>
             <TableContainer component={Paper}>
               <Table sx={{ minWidth: 650 }} size="small">
                 <TableHead>
-                  <TableRow>
-                    <TableCell>ID</TableCell>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Part Number</TableCell>
-                    <TableCell>Category</TableCell>
-                    <TableCell align="right">Stock</TableCell>
-                    <TableCell>Supplier</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>UoM</TableCell>
-                    <TableCell align="right">Price</TableCell>
-                    <TableCell>Actions</TableCell>
+                  <TableRow sx={{ bgcolor: theme.palette.grey[100] }}>
+                    <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Nama Item</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Part Number</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Kategori</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Kuantitas</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Supplier</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>UOM</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Harga Satuan</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Nilai Total</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Keterangan</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Aksi</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -574,39 +601,87 @@ const StockManagement = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    items.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>{item.id}</TableCell>
-                        <TableCell>{item.name}</TableCell>
-                        <TableCell>{item.part_number}</TableCell>
-                        <TableCell>{item.category}</TableCell>
-                        <TableCell align="right">{item.stock}</TableCell>
-                        <TableCell>{item.supplier}</TableCell>
-                        <TableCell>{item.status}</TableCell>
-                        <TableCell>{item.uom}</TableCell>
-                        <TableCell align="right">
-                          {typeof item.price === 'number' 
-                            ? item.price.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' }) 
-                            : 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => handleEdit(item.id)}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleDeleteClick(item.id)}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    items.map((item) => {
+                      const totalValue = (item.price && item.stock) ? item.price * item.stock : 0;
+                      return (
+                        <TableRow
+                          key={item.id}
+                          hover
+                          sx={{
+                            backgroundColor: item.stock <= 10
+                              ? theme.palette.error.light + '20'
+                              : item.stock <= 50
+                                ? theme.palette.warning.light + '20'
+                                : 'inherit'
+                          }}
+                        >
+                          <TableCell>{item.id}</TableCell>
+                          <TableCell>{item.name}</TableCell>
+                          <TableCell>{item.part_number || '-'}</TableCell>
+                          <TableCell>{item.category || '-'}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={item.stock}
+                              size="small"
+                              color={
+                                item.stock <= 10 ? 'error' :
+                                item.stock <= 50 ? 'warning' :
+                                'success'
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>{item.supplier || '-'}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={item.stock < 50 ? 'Low Stock' : 'Available'}
+                              color={item.stock < 50 ? 'error' : 'success'}
+                              size="small"
+                              sx={{ fontWeight: 'bold', letterSpacing: 0.5 }}
+                            />
+                          </TableCell>
+                          <TableCell>{item.uom || '-'}</TableCell>
+                          <TableCell>
+                            {item.price
+                              ? new Intl.NumberFormat('id-ID', {
+                                  style: 'currency',
+                                  currency: 'IDR',
+                                  maximumFractionDigits: 0
+                                }).format(item.price)
+                              : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {totalValue
+                              ? new Intl.NumberFormat('id-ID', {
+                                  style: 'currency',
+                                  currency: 'IDR',
+                                  maximumFractionDigits: 0
+                                }).format(totalValue)
+                              : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <Tooltip title={item.remarks || 'Tidak ada keterangan'}>
+                              <span>{item.remarks ? (item.remarks.length > 20 ? item.remarks.substring(0, 20) + '...' : item.remarks) : '-'}</span>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell>
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleEdit(item.id)}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleDeleteClick(item.id)}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
