@@ -230,7 +230,7 @@ const History = () => {
       {/* Display History Data or Empty State */}
       {!loading && !error && (
         hasHistory ? (
-          <Stack spacing={theme.spacing(2)}>
+          <Stack spacing={theme.spacing(2)} direction="column">
             {filteredHistory.map((record) => (
               <Card
                 key={record.id} // Use record.id from the database
@@ -246,6 +246,10 @@ const History = () => {
                     transform: 'translateY(-2px)',
                     cursor: 'pointer', // Indicate clickable, though not implemented yet
                   },
+                  width: '100%',
+                  maxWidth: 600,
+                  mx: 'auto',
+                  mb: 2,
                 }}
               >
                 <Avatar

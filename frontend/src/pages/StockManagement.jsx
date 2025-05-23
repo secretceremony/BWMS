@@ -514,9 +514,9 @@ const StockManagement = () => {
           {/* Action Bar: Filter, Search, Add */}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }} justifyContent="space-between" mb={3}>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <Button variant="contained" color="primary" onClick={handleAddItem}>Add New Item</Button>
-              <Button variant="outlined" color="primary" onClick={handleOpenIncomingForm}>Incoming Goods</Button>
-              <Button variant="outlined" color="primary" onClick={handleOpenOutgoingForm}>Outgoing Goods</Button>
+              <Button variant="contained" color="primary" onClick={handleAddItem} sx={{ minWidth: { xs: '100%', sm: 120 } }}>Add New Item</Button>
+              <Button variant="outlined" color="primary" onClick={handleOpenIncomingForm} sx={{ minWidth: { xs: '100%', sm: 120 } }}>Incoming Goods</Button>
+              <Button variant="outlined" color="primary" onClick={handleOpenOutgoingForm} sx={{ minWidth: { xs: '100%', sm: 120 } }}>Outgoing Goods</Button>
               <Tooltip title="Filter Inventory">
                 <Button variant="outlined" onClick={handleFilterClick} startIcon={<FilterList />} color="primary">Filter</Button>
               </Tooltip>
@@ -558,7 +558,7 @@ const StockManagement = () => {
 
           {/* Main Content - Items Table */}
           <Card sx={{ mt: 3 }}>
-            <TableContainer component={Paper}>
+            <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
               <Table sx={{ minWidth: 650 }} size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: theme.palette.grey[100] }}>

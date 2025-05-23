@@ -380,17 +380,11 @@ const Profile = ({ user: userProp }) => {
           </Typography>
           <Divider sx={{ mb: theme.spacing(2) }} /> {/* Use theme spacing */}
 
-          <Grid container spacing={theme.spacing(3)} alignItems="center"> {/* Use theme spacing */}
+          <Grid container spacing={theme.spacing(3)} alignItems="center" direction={{ xs: 'column', sm: 'row' }}>
             <Grid item>
               {/* Avatar with theme secondary color */}
               <Tooltip title="User Avatar" arrow> {/* Adjusted tooltip title */}
-                <Avatar sx={{
-                  width: 100, // Slightly smaller avatar
-                  height: 100, // Slightly smaller avatar
-                  fontSize: 32,
-                  bgcolor: theme.palette.secondary.main, // Use theme secondary color
-                  color: theme.palette.secondary.contrastText, // Use theme contrast text
-                }}>
+                <Avatar sx={{ width: 80, height: 80, fontSize: 28, mb: { xs: 2, sm: 0 } }}>
                   {user.username ? user.username.split(' ').map(word => word[0]).join('').toUpperCase() : '?'}
                 </Avatar>
               </Tooltip>

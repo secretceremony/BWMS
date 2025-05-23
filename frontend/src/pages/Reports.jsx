@@ -1033,6 +1033,7 @@ const Report = () => {
             size="medium" 
             onClick={handleOpenAddForm}
             startIcon={<AddIcon />}
+            sx={{ minWidth: { xs: '100%', sm: 120 } }}
           >
             Tambah {reportTab === 0 ? 'Laporan' : 'Stok'}
           </Button>
@@ -1923,7 +1924,7 @@ const Report = () => {
         </DialogActions>
       </Dialog>
     </Box>
-  );;
+  );
 };
 
 export default Report;

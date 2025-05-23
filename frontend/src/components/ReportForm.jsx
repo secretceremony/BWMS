@@ -291,31 +291,30 @@ const ReportForm = ({
                   onChange={handleChange}
                   displayEmpty
                   inputProps={{ 'aria-label': 'Tipe Transaksi' }}
-                  label="Tipe Transaksi"
+                  fullWidth
                 >
-                  <MenuItem value="incoming">Barang Masuk (Stock In)</MenuItem>
-                  <MenuItem value="outgoing">Barang Keluar (Stock Out)</MenuItem>
+                  <MenuItem value="incoming">Barang Masuk</MenuItem>
+                  <MenuItem value="outgoing">Barang Keluar</MenuItem>
                 </Select>
-                <FormHelperText error>{validationErrors.transactionType}</FormHelperText>
               </FormControl>
             </Grid>
             <Grid item>
               <TextField
-                label="Tanggal Transaksi"
-                name="transactionDate"
-                value={formData.transactionDate}
-                onChange={handleChange}
                 fullWidth
                 required
+                label="Tanggal Transaksi"
+                name="transactionDate"
                 type="date"
+                value={formData.transactionDate}
+                onChange={handleChange}
+                InputLabelProps={{ shrink: true }}
                 error={!!validationErrors.transactionDate}
                 helperText={validationErrors.transactionDate}
-                InputLabelProps={{ shrink: true }}
                 sx={{ mb: 2 }}
               />
             </Grid>
             <Grid item>
-              <FormControl fullWidth error={!!validationErrors.source} sx={{ mb: 2 }}>
+              <FormControl fullWidth required error={!!validationErrors.source} sx={{ mb: 2 }}>
                 <InputLabel>{formData.transactionType === 'incoming' ? 'Supplier' : 'Customer/Tujuan'}</InputLabel>
                 <Select
                   name="source"
@@ -323,6 +322,7 @@ const ReportForm = ({
                   onChange={handleChange}
                   displayEmpty
                   label={formData.transactionType === 'incoming' ? 'Supplier' : 'Customer/Tujuan'}
+                  fullWidth
                 >
                   <MenuItem value="">-</MenuItem>
                   {suppliers.map(supplier => (
@@ -356,42 +356,35 @@ const ReportForm = ({
             </Grid>
             <Grid item>
               <TextField
-                label="Jumlah"
-                name="quantity"
-                value={formData.quantity}
-                onChange={handleChange}
                 fullWidth
                 required
+                label="Jumlah"
+                name="quantity"
                 type="number"
+                value={formData.quantity}
+                onChange={handleChange}
                 error={!!validationErrors.quantity}
                 helperText={validationErrors.quantity}
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ min: 1 }}
                 sx={{ mb: 2 }}
               />
             </Grid>
             <Grid item>
               <TextField
+                fullWidth
                 label="Harga Satuan"
                 name="unitPrice"
                 value={formData.unitPrice}
-                fullWidth
-                type="number"
                 InputProps={{ readOnly: true }}
-                InputLabelProps={{ shrink: true }}
-                helperText="Otomatis dari data item"
                 sx={{ mb: 2 }}
               />
             </Grid>
             <Grid item>
               <TextField
+                fullWidth
                 label="Total Nilai"
                 name="totalValue"
                 value={formData.totalValue}
-                fullWidth
                 InputProps={{ readOnly: true }}
-                InputLabelProps={{ shrink: true }}
-                helperText="Otomatis dari data item"
                 sx={{ mb: 2 }}
               />
             </Grid>
@@ -426,15 +419,14 @@ const ReportForm = ({
             </Grid>
             <Grid item>
               <TextField
+                fullWidth
                 label="Keterangan"
                 name="remarks"
                 value={formData.remarks}
                 onChange={handleChange}
-                fullWidth
                 multiline
-                rows={3}
-                InputLabelProps={{ shrink: true }}
-                placeholder="Tambahkan keterangan atau catatan penting tentang transaksi ini"
+                minRows={2}
+                sx={{ mb: 2 }}
               />
             </Grid>
           </Grid>
