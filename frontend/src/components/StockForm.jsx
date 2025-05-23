@@ -14,7 +14,8 @@ import {
   FormControl,
   CircularProgress,
   Typography,
-  Box
+  Box,
+  FormHelperText
 } from '@mui/material';
 
 // API URL from environment
@@ -49,7 +50,7 @@ const StockForm = ({
     category: '',
     stock: 0, // Frontend menggunakan 'stock'
     supplier: '',
-    status: '',
+    status: 'Available', // Default status
     uom: '',
     remarks: '',
     price: 0,
@@ -59,6 +60,12 @@ const StockForm = ({
   const [suppliers, setSuppliers] = useState([]);
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
   const [supplierError, setSupplierError] = useState(null);
+
+  // State untuk error validasi per field
+  const [validationErrors, setValidationErrors] = useState({});
+
+  const MAX_INT = 2147483647;
+  const MAX_PRICE = 9999999999.99;
 
   // Fetch suppliers dari API
   useEffect(() => {
@@ -133,7 +140,7 @@ const StockForm = ({
         category: '',
         stock: 0,
         supplier: '',
-        status: '',
+        status: 'Available',
         uom: '',
         remarks: '',
         price: 0,
@@ -189,29 +196,43 @@ const StockForm = ({
 const handleSubmit = (event) => {
   event.preventDefault();
 
-  // Validasi semua field wajib terisi
-  const requiredFields = ['name', 'part_number', 'category', 'stock', 'supplier', 'status', 'uom', 'price'];
-  for (const field of requiredFields) {
-    if (
-      formData[field] === '' ||
-      formData[field] === null ||
-      (typeof formData[field] === 'number' && isNaN(formData[field]))
-    ) {
-      alert(`Field "${field}" harus diisi.`);
-      return;
-    }
+  // Validasi semua field wajib terisi dan valid
+  const errors = {};
+  const MAX_SMALLINT = 32767;
+  if (!formData.name.trim()) errors.name = 'Nama wajib diisi';
+  if (formData.part_number === '' || formData.part_number === null || isNaN(Number(formData.part_number))) {
+    errors.part_number = 'Part Number wajib diisi dan berupa angka';
+  } else if (Number(formData.part_number) < 0 || Number(formData.part_number) > MAX_INT) {
+    errors.part_number = `Part Number harus antara 0 dan ${MAX_INT}`;
   }
+  if (!formData.category.trim()) errors.category = 'Kategori wajib diisi';
+  if (formData.stock === '' || formData.stock === null || isNaN(Number(formData.stock))) {
+    errors.stock = 'Stok wajib diisi dan berupa angka';
+  } else if (Number(formData.stock) < 0 || Number(formData.stock) > MAX_INT) {
+    errors.stock = `Stok harus antara 0 dan ${MAX_INT}`;
+  }
+  if (!formData.supplier.trim()) errors.supplier = 'Supplier wajib diisi';
+  if (!formData.status) errors.status = 'Status wajib diisi';
+  if (!formData.uom) errors.uom = 'UOM wajib diisi';
+  if (formData.price === '' || formData.price === null || isNaN(Number(formData.price))) {
+    errors.price = 'Harga wajib diisi dan berupa angka';
+  } else if (Number(formData.price) < 0 || Number(formData.price) > MAX_PRICE) {
+    errors.price = `Harga harus antara 0 dan ${MAX_PRICE}`;
+  }
+
+  setValidationErrors(errors);
+  if (Object.keys(errors).length > 0) return;
 
   const dataToSubmit = {
     id: formData.id ?? undefined, // hanya sertakan jika edit
     name: formData.name.trim(),
-    part_number: parseInt(formData.part_number, 10),
+    part_number: formData.part_number !== '' && formData.part_number !== null ? parseInt(formData.part_number, 10) : undefined, // Pastikan number dan tidak kosong
     category: formData.category.trim(),
     quantity: Number(formData.stock), // ubah dari stock
     supplier: formData.supplier.trim(),
     status: formData.status,
     uom: formData.uom,
-    price: Number(formData.price),
+    price: formData.price !== '' && formData.price !== null ? Number(formData.price) : undefined, // Pastikan number dan tidak kosong
     remarks: formData.remarks?.trim() || null
   };
 
@@ -249,6 +270,8 @@ const handleSubmit = (event) => {
                        fullWidth
                        required
                        InputLabelProps={{ shrink: true }}
+                       error={!!validationErrors.name}
+                       helperText={validationErrors.name}
                    />
                </Grid>
 
@@ -261,6 +284,10 @@ const handleSubmit = (event) => {
                        fullWidth
                        required
                        InputLabelProps={{ shrink: true }}
+                       error={!!validationErrors.part_number}
+                       helperText={validationErrors.part_number}
+                       type="number"
+                       inputProps={{ min: 0, max: MAX_INT }}
                    />
                </Grid>
 
@@ -273,6 +300,8 @@ const handleSubmit = (event) => {
                        fullWidth
                        required
                        InputLabelProps={{ shrink: true }}
+                       error={!!validationErrors.category}
+                       helperText={validationErrors.category}
                    />
                </Grid>
 
@@ -286,11 +315,14 @@ const handleSubmit = (event) => {
                        required
                        type="number"
                        InputLabelProps={{ shrink: true }}
+                       error={!!validationErrors.stock}
+                       helperText={validationErrors.stock}
+                       inputProps={{ min: 0, max: MAX_INT }}
                    />
                </Grid>
 
                <Grid item xs={12}>
-                   <FormControl fullWidth required>
+                   <FormControl fullWidth required error={!!validationErrors.supplier}>
                        <InputLabel id="supplier-label">Supplier</InputLabel>
                        <Select
                            labelId="supplier-label"
@@ -316,11 +348,32 @@ const handleSubmit = (event) => {
                                ))
                            )}
                        </Select>
+                       <FormHelperText>{validationErrors.supplier}</FormHelperText>
                    </FormControl>
                </Grid>
 
                <Grid item xs={12}>
-                   <FormControl fullWidth required>
+                   <FormControl fullWidth required error={!!validationErrors.status}>
+                       <InputLabel id="status-label">Status</InputLabel>
+                       <Select
+                           labelId="status-label"
+                           name="status"
+                           value={formData.status}
+                           onChange={handleChange}
+                           label="Status"
+                       >
+                           {statuses.map((status) => (
+                               <MenuItem key={status} value={status}>
+                                   {status}
+                               </MenuItem>
+                           ))}
+                       </Select>
+                       <FormHelperText>{validationErrors.status}</FormHelperText>
+                   </FormControl>
+               </Grid>
+
+               <Grid item xs={12}>
+                   <FormControl fullWidth required error={!!validationErrors.uom}>
                        <InputLabel id="uom-label">Unit of Measure</InputLabel>
                        <Select
                            labelId="uom-label"
@@ -335,6 +388,7 @@ const handleSubmit = (event) => {
                                </MenuItem>
                            ))}
                        </Select>
+                       <FormHelperText>{validationErrors.uom}</FormHelperText>
                    </FormControl>
                </Grid>
 
@@ -348,6 +402,9 @@ const handleSubmit = (event) => {
                        required
                        type="number"
                        InputLabelProps={{ shrink: true }}
+                       error={!!validationErrors.price}
+                       helperText={validationErrors.price}
+                       inputProps={{ min: 0, max: MAX_PRICE, step: 0.01 }}
                    />
                </Grid>
 
@@ -369,6 +426,13 @@ const handleSubmit = (event) => {
            {error && (
                <Box sx={{ mt: 2 }}>
                    <Typography color="error">{error}</Typography>
+               </Box>
+           )}
+
+           {/* Tampilkan error global jika ada */}
+           {Object.keys(validationErrors).length > 0 && (
+               <Box sx={{ mt: 2 }}>
+                   <Typography color="error">Mohon lengkapi semua field wajib dengan benar.</Typography>
                </Box>
            )}
         </Box>

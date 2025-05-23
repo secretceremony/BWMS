@@ -27,7 +27,9 @@ import {
   Select,
   TextField,
   MenuItem,
-  Grid
+  Grid,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, FilterList, ArrowDownward, ArrowUpward } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
@@ -110,6 +112,9 @@ const StockManagement = ({ user }) => {
   const handleFilterClick = (event) => { setFilterAnchorEl(event.currentTarget); };
   const handleFilterClose = () => { setFilterAnchorEl(null); };
   const handleFilterApply = () => { setFilterAnchorEl(null); };
+
+  // Tambahkan state untuk snackbar error di StockManagement
+  const [openErrorSnackbar, setOpenErrorSnackbar] = useState(false);
 
   // Handler untuk perubahan tab
   const handleTabChange = (event, newValue) => {
@@ -327,6 +332,7 @@ const StockManagement = ({ user }) => {
             } else {
                 setSaveError(`Failed to save item: ${errorBody.error || errorBody.message || response.statusText}`);
             }
+            setOpenErrorSnackbar(true);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
@@ -338,6 +344,7 @@ const StockManagement = ({ user }) => {
         console.error("Save item failed:", error);
         if (!error.message.includes('HTTP error')) {
             setSaveError("Failed to save item. Network error or server issue.");
+            setOpenErrorSnackbar(true);
         }
     } finally {
         setSaveLoading(false);
@@ -722,6 +729,19 @@ const StockManagement = ({ user }) => {
               loading={transactionLoading}
               error={transactionError}
             />
+          )}
+
+          {saveError && (
+            <Snackbar
+              open={openErrorSnackbar}
+              autoHideDuration={4000}
+              onClose={() => setOpenErrorSnackbar(false)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+              <Alert onClose={() => setOpenErrorSnackbar(false)} severity="error" sx={{ width: '100%' }}>
+                {saveError}
+              </Alert>
+            </Snackbar>
           )}
         </Box>
       ) : null}

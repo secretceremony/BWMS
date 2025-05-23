@@ -267,14 +267,15 @@ const ReportForm = ({
     if (!validate()) return;
 
     const dataToSubmit = {
-      itemId: formData.itemId,
+      itemId: Array.isArray(formData.itemId) ? formData.itemId[0] : formData.itemId,
       quantity: Number(formData.quantity),
+      transactionDate: formData.transactionDate,
       unitPrice: formData.unitPrice ? Number(formData.unitPrice) : undefined,
       totalValue: formData.totalValue ? Number(formData.totalValue) : undefined,
       source: formData.source,
       remarks: formData.remarks,
-      transactionDate: formData.transactionDate,
       categoryTags: formData.categoryTags,
+      transaction_type: formData.transactionType
     };
 
     // Kirim data ke parent component
@@ -460,7 +461,7 @@ const ReportForm = ({
           onClick={handleSubmit} 
           color="primary" 
           variant="contained"
-          disabled={loading}
+          disabled={loading || (user && user.role !== 'admin')}
           startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
         >
           {isEdit ? 'Perbarui' : 'Simpan'}

@@ -1623,6 +1623,7 @@ const Report = ({ user }) => {
           error={formError}
           isEdit={isEdit}
           editData={editData}
+          user={user}
         />
       )}
 
