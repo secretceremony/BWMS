@@ -228,15 +228,15 @@ Berikut tangkapan layar yang menunjukkan fitur-fitur dan progres minggu ini:
   ![Get All](getallsupplier.png)  
   Pengujian endpoint: `GET /api//`
 
-- **Add **  
+- **Add**  
   ![Add](addsupplier.png)  
   Pengujian endpoint: `PUT /api//4`
 
-- **Update **  
+- **Update**  
   ![Update](updatesupplier.png)  
   Pengujian endpoint: `PUT /api//4`
 
-- **Delete **  
+- **Delete**  
   ![Delete](deletesupplier.png)  
   Pengujian endpoint: `DELETE /api//4`
 
@@ -247,7 +247,35 @@ Berikut tangkapan layar yang menunjukkan fitur-fitur dan progres minggu ini:
 ---
 
 ### 6. Penyempurnaan dokumentasi
-  Readme: 
+  #### **README** ####
+  
+  **Biruni Warehouse Management System (BWMS)** adalah platform berbasis web yang dirancang khusus untuk membantu PT. Biruni Altha Etam dalam mengelola operasional gudangnya secara efisien, akurat, dan terintegrasi. Website ini dikembangkan sebagai solusi atas sistem pencatatan manual yang rentan terhadap kesalahan, kehilangan data, dan lambat dalam pelacakan barang.
+
+**BWMS menghadirkan fitur-fitur utama seperti:**
+
+- Manajemen Stok Barang secara real-time,
+- Pencatatan Barang Masuk dan Keluar,
+- Pelacakan Riwayat Transaksi,
+- Pengelolaan Data Supplier,
+- Pembuatan dan Ekspor Laporan dalam format PDF/Excel,
+- Dashboard Interaktif untuk memantau ringkasan aktivitas gudang.
+
+Sistem ini juga dilengkapi fitur hak akses peran, yang membedakan fungsi antara Admin (akses penuh) dan Manajer (akses terbatas untuk monitoring dan analisis).
+
+**Teknologi yang Digunakan:**
+
+BWMS dibangun dengan React.js + Vite dan Material-UI untuk frontend, PostgreSQL untuk database, Express.js dan Node.js untuk backend. Sistem ini juga memanfaatkan Redux Toolkit/Context API untuk manajemen state,  serta Axios untuk komunikasi API. Website ini dihosting menggunakan Vercel (frontend) dan Railway (backend & database).
+
+**Tujuan dan Manfaat:**
+
+Dengan sistem ini, perusahaan dapat:
+- Mengurangi kesalahan pencatatan stok,
+- Mempercepat proses pelaporan dan analisis,
+- Menyediakan data terpusat yang mudah diakses,
+- Meningkatkan transparansi dan efisiensi operasional gudang.
+
+---
+
 
 ### 7. Presentation
 Link Presentation: https://www.canva.com/design/DAGoO13ysOo/Wyrsr0dQ_HCGXo_dfneZLg/edit?utm_content=DAGoO13ysOo&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
