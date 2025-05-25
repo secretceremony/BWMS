@@ -42,10 +42,11 @@ const History = ({ user }) => {
   const [filterType, setFilterType] = useState('');
   const [page, setPage] = useState(0);
   const rowsPerPage = 5;
-  const [sortAbjad, setSortAbjad] = useState('az');
+  // HAPUS: const [sortAbjad, setSortAbjad] = useState('az');
 
   // Reset page ke 0 saat search/filter berubah
-  useEffect(() => { setPage(0); }, [search, startDate, endDate, filterType, sortAbjad]);
+  // HAPUS: sortAbjad dari dependencies
+  useEffect(() => { setPage(0); }, [search, startDate, endDate, filterType]);
 
   // Fetch items data to map item_id to item names
   const fetchItems = async (token) => {
@@ -189,13 +190,15 @@ const History = ({ user }) => {
     return matchDate && matchSearch && matchType;
   });
 
-  const sortedHistory = [...filteredHistory].sort((a, b) => {
-    const nameA = getItemName(a.item_id).toLowerCase();
-    const nameB = getItemName(b.item_id).toLowerCase();
-    if (sortAbjad === 'az') return nameA.localeCompare(nameB);
-    return nameB.localeCompare(nameA);
-  });
-  const paginatedHistory = sortedHistory.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  // HAPUS: Logika sorting berdasarkan abjad
+  // const sortedHistory = [...filteredHistory].sort((a, b) => {
+  //   const nameA = getItemName(a.item_id).toLowerCase();
+  //   const nameB = getItemName(b.item_id).toLowerCase();
+  //   if (sortAbjad === 'az') return nameA.localeCompare(nameB);
+  //   return nameB.localeCompare(nameA);
+  // });
+  // MODIFIKASI: Gunakan filteredHistory langsung untuk paginasi
+  const paginatedHistory = filteredHistory.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
     <Box
@@ -249,17 +252,7 @@ const History = ({ user }) => {
           <Button variant="outlined" onClick={() => setPresetRange(90)} size="small">3 Bulan Terakhir</Button>
           <Button variant="outlined" onClick={handleCustom} size="small">Custom</Button>
         </Stack>
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel>Urutkan</InputLabel>
-          <Select
-            value={sortAbjad}
-            label="Urutkan"
-            onChange={e => setSortAbjad(e.target.value)}
-          >
-            <MenuItem value="az">A-Z</MenuItem>
-            <MenuItem value="za">Z-A</MenuItem>
-          </Select>
-        </FormControl>
+        {/* HAPUS: FormControl untuk Urutkan */}
       </Stack>
 
       {customMode && (
