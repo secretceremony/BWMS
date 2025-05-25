@@ -24,57 +24,54 @@ Panduan ini ditujukan bagi pengguna sistem BWMS, yaitu **Admin** dan **Manajer**
 
 ---
 
-### 📦 Manajemen Stok Barang (Admin)
-- **Menu:** `Stok Barang`
+### 📦 Manajemen Stok Barang 
+- **Menu:** `Stock Management`
 - **Fitur:**
-  - **Tambah Barang:** Isi nama, kategori, jumlah, supplier, dan lokasi → klik **Simpan**
-  - **Ubah Barang:** Klik **Edit**, ubah informasi, lalu **Simpan**
-  - **Hapus Barang:** Klik **Hapus** → konfirmasi
+  - **Tambah Barang:** Isi form sesuai dengan detail yang diminta → klik **Simpan**
+  - **Ubah Barang:** Klik **Ikon Pensil**, ubah informasi, lalu klik **Simpan**
+  - **Hapus Barang:** Klik **Ikon Tempat Sampah** → **konfirmasi**
   - **Cari & Filter:** Gunakan kolom pencarian atau filter berdasarkan kategori/supplier
 
 ---
 
-### 📥 Barang Masuk (Admin)
-- **Menu:** `Barang Masuk`
+### 📥 Barang Masuk 
+- **Menu:** `Stock Management`
 - **Langkah:**
-  1. Pilih item dari daftar
-  2. Masukkan jumlah, tanggal, dan supplier
+  1. Klik tombol Barang Masuk
+  2. Pilih item dari daftar, Masukkan jumlah, tanggal, dan komentar (jika dibutuhkan)
   3. Klik **Simpan**
 - **Catatan:** Stok akan otomatis bertambah dan dicatat dalam riwayat transaksi
 
 ---
 
-### 📤 Barang Keluar (Admin)
-- **Menu:** `Barang Keluar`
+### 📤 Barang Keluar 
+- **Menu:** `Stock Management`
 - **Langkah:**
-  1. Pilih item
-  2. Masukkan jumlah, tanggal, dan tujuan pengiriman
+  1. Klik tombol Barang Keluar
+  2. Pilih item dari daftar, Masukkan jumlah, tanggal, dan komentar (jika dibutuhkan)
   3. Klik **Simpan**
-- **Catatan:** Sistem akan memvalidasi ketersediaan stok
+- **Catatan:** Stok akan otomatis berkurang dan dicatat dalam riwayat transaksi
 
 ---
 
-### 📜 Riwayat Transaksi (Admin & Manajer)
-- **Menu:** `Riwayat`
+### 📜 Riwayat Transaksi
+- **Menu:** `History`
 - **Fungsi:**
   - Menampilkan log transaksi barang masuk dan keluar
-  - Gunakan filter tanggal, barang, atau jenis transaksi
-  - Klik detail untuk melihat catatan lengkap
+  - Gunakan filter tanggal atau barang 
 
 ---
 
-### 🧾 Laporan (Admin & Manajer)
-- **Menu:** `Laporan`
+### 🧾 Laporan 
+- **Menu:** `Reports`
 - **Langkah:**
   1. Pilih jenis laporan (stok / transaksi)
-  2. Atur filter: kategori, tanggal, supplier
-  3. Klik **Tampilkan**
-  4. Ekspor ke PDF / Excel jika diperlukan
-  5. Manajer dapat mencetak atau mengirim laporan melalui email
+  2. Ekspor ke PDF / Excel jika diperlukan
+  3. Manajer dapat mencetak atau mengirim laporan melalui email
 
 ---
 
-### 📊 Dashboard (Admin & Manajer)
+### 📊 Dashboard 
 - Menampilkan:
   - Total stok barang
   - Barang masuk & keluar terbaru
@@ -83,17 +80,8 @@ Panduan ini ditujukan bagi pengguna sistem BWMS, yaitu **Admin** dan **Manajer**
 
 ---
 
-### 📍 Manajemen Lokasi Penyimpanan (Admin)
-- **Menu:** `Lokasi`
-- **Fitur:**
-  - Tambah lokasi baru dengan nama dan kapasitas maksimal
-  - Ubah nama atau kapasitas lokasi
-  - Hapus lokasi jika tidak digunakan
-
----
-
-### 👤 Pengelolaan Akun Pengguna (Admin)
-- **Menu:** `Pengguna`
+### 👤 Pengelolaan Akun Pengguna
+- **Menu:** `Profile`
 - **Fitur:**
   - Tambah pengguna baru (Admin/Manajer)
   - Ubah informasi akun (email, username, password)
@@ -102,8 +90,8 @@ Panduan ini ditujukan bagi pengguna sistem BWMS, yaitu **Admin** dan **Manajer**
 
 ---
 
-### 🏢 Pengelolaan Supplier (Admin)
-- **Menu:** `Supplier`
+### 🏢 Pengelolaan Supplier 
+- **Menu:** `Supplier Management`
 - **Fitur:**
   - Tambah supplier dengan nama, alamat, dan kontak
   - Edit informasi supplier
@@ -112,23 +100,8 @@ Panduan ini ditujukan bagi pengguna sistem BWMS, yaitu **Admin** dan **Manajer**
 
 ---
 
-### 🔔 Notifikasi Otomatis (Manajer)
-- Sistem memberikan notifikasi real-time untuk:
-  - **Stok kritis** (di bawah ambang batas)
-  - **Transaksi masuk/keluar besar**
-  - **Laporan yang perlu ditinjau**
-
----
-
-### 📈 Analisis Pergerakan Stok (Manajer)
-- **Menu:** `Analisis`
-- Menampilkan grafik tren pergerakan stok (harian, mingguan, bulanan)
-- Membantu manajer melihat pola distribusi dan prediksi kebutuhan stok
-
----
-
 ## Logout
-- Klik ikon profil di pojok kanan atas → pilih **Logout**
+- Klik logout pada side bar (sebelah kiri)
 - Sistem akan keluar dan kembali ke halaman login
 
 ---
