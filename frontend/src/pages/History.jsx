@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Stack, Typography, Card, CardContent, Avatar, useTheme, CircularProgress, Button, TextField
+  Box, Stack, Typography, Card, CardContent, Avatar, useTheme, CircularProgress, Button, TextField, MenuItem, IconButton
 } from '@mui/material';
 import {
   ArrowDownward as IncomingIcon,
@@ -38,6 +38,13 @@ const History = ({ user }) => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('error');
+  // Tambahkan state untuk filter tipe transaksi
+  const [filterType, setFilterType] = useState('');
+  const [page, setPage] = useState(0);
+  const rowsPerPage = 5;
+
+  // Reset page ke 0 saat search/filter berubah
+  useEffect(() => { setPage(0); }, [search, startDate, endDate, filterType]);
 
   // Fetch items data to map item_id to item names
   const fetchItems = async (token) => {
@@ -167,15 +174,20 @@ const History = ({ user }) => {
     setEndDate('');
   };
 
-  // Filter data history berdasarkan search
+  // Filter data history berdasarkan search, tanggal, dan tipe transaksi
   const filteredHistory = historyData.filter(record => {
-    if (!startDate || !endDate) return true;
-    const tgl = new Date(record.transaction_date).toISOString().split('T')[0];
-    const matchDate = tgl >= startDate && tgl <= endDate;
+    let matchDate = true;
+    if (startDate && endDate) {
+      const tgl = new Date(record.transaction_date).toISOString().split('T')[0];
+      matchDate = tgl >= startDate && tgl <= endDate;
+    }
+    const query = search.trim().toLowerCase();
     const itemName = getItemName(record.item_id).toLowerCase();
-    const matchSearch = !search || itemName.includes(search.toLowerCase()) || String(record.item_id).includes(search);
-    return matchDate && matchSearch;
+    const matchSearch = !query || itemName.includes(query) || String(record.item_id).includes(query);
+    const matchType = !filterType || record.transaction_type === filterType;
+    return matchDate && matchSearch && matchType;
   });
+  const paginatedHistory = filteredHistory.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
     <Box
@@ -211,6 +223,18 @@ const History = ({ user }) => {
           onChange={e => setSearch(e.target.value)}
           sx={{ minWidth: 200, flex: 1 }}
         />
+        <TextField
+          select
+          label="Tipe Transaksi"
+          size="small"
+          value={filterType}
+          onChange={e => setFilterType(e.target.value)}
+          sx={{ minWidth: 150 }}
+        >
+          <MenuItem value="">Semua</MenuItem>
+          <MenuItem value="incoming">Masuk</MenuItem>
+          <MenuItem value="outgoing">Keluar</MenuItem>
+        </TextField>
         <Stack direction="row" spacing={1} flexWrap="wrap">
           <Button variant="outlined" onClick={() => setPresetRange(7)} size="small">7 Hari Terakhir</Button>
           <Button variant="outlined" onClick={() => setPresetRange(30)} size="small">1 Bulan Terakhir</Button>
@@ -246,7 +270,7 @@ const History = ({ user }) => {
       {!loading && !error && (
         hasHistory ? (
           <Stack spacing={2} direction="column">
-            {filteredHistory.map((record) => {
+            {paginatedHistory.map((record) => {
               const itemName = (itemsData && itemsData[record.item_id] && itemsData[record.item_id].name) ? itemsData[record.item_id].name : '';
               return (
                 <Card
@@ -334,6 +358,21 @@ const History = ({ user }) => {
           </Box>
         )
       )}
+
+      <Stack direction="row" justifyContent="space-between" alignItems="center" mt={2}>
+        <Typography variant="body2" color="text.secondary">
+          Menampilkan {paginatedHistory.length} dari {filteredHistory.length} riwayat
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <IconButton size="small" onClick={() => setPage(page - 1)} disabled={page === 0}>
+            {'<'}
+          </IconButton>
+          <Typography variant="body2">{page + 1}</Typography>
+          <IconButton size="small" onClick={() => setPage(page + 1)} disabled={page >= Math.ceil(filteredHistory.length / rowsPerPage) - 1}>
+            {'>'}
+          </IconButton>
+        </Box>
+      </Stack>
 
       <Snackbar open={snackbarOpen} autoHideDuration={4000} onClose={() => setSnackbarOpen(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: '100%' }}>

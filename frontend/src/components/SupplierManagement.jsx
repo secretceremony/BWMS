@@ -18,7 +18,9 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Tooltip
+  Tooltip,
+  TextField,
+  MenuItem
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import SupplierForm from './SupplierForm';
@@ -48,6 +50,10 @@ const SupplierManagement = ({ user }) => {
   const [supplierToDelete, setSupplierToDelete] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+
+  // Tambahkan state untuk search dan filter abjad
+  const [search, setSearch] = useState('');
+  const [filterAbjad, setFilterAbjad] = useState('');
 
   // Fetch data supplier
   const fetchSuppliers = async () => {
@@ -93,6 +99,13 @@ const SupplierManagement = ({ user }) => {
   useEffect(() => {
     fetchSuppliers();
   }, []);
+
+  // Filter suppliers berdasarkan search dan abjad
+  const filteredSuppliers = suppliers.filter(supplier => {
+    const matchSearch = !search || supplier.name.toLowerCase().includes(search.toLowerCase());
+    const matchAbjad = !filterAbjad || supplier.name.toLowerCase().startsWith(filterAbjad.toLowerCase());
+    return matchSearch && matchAbjad;
+  });
 
   // Handler untuk tambah supplier
   const handleAddSupplier = () => {
@@ -242,6 +255,29 @@ const SupplierManagement = ({ user }) => {
         )}
       </Box>
 
+      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+        <TextField
+          size="small"
+          placeholder="Cari supplier..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          sx={{ minWidth: 200 }}
+        />
+        <TextField
+          select
+          size="small"
+          label="Filter Abjad"
+          value={filterAbjad}
+          onChange={e => setFilterAbjad(e.target.value)}
+          sx={{ minWidth: 120 }}
+        >
+          <MenuItem value="">Semua</MenuItem>
+          {Array.from(new Set(suppliers.map(s => s.name?.[0]?.toUpperCase()).filter(Boolean))).sort().map(huruf => (
+            <MenuItem key={huruf} value={huruf}>{huruf}</MenuItem>
+          ))}
+        </TextField>
+      </Box>
+
       <Card>
         <TableContainer component={Paper}>
           <Table>
@@ -281,7 +317,7 @@ const SupplierManagement = ({ user }) => {
                   </TableCell>
                 </TableRow>
               ) : (
-                suppliers.map((supplier, idx) => (
+                filteredSuppliers.map((supplier, idx) => (
                   <TableRow
                     key={supplier.id}
                     hover

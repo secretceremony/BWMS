@@ -271,31 +271,36 @@ const Report = ({ user }) => {
     setPage(0);
   };
 
-  const filteredReports = reports.filter((report) => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch = 
-      report.id.toString().includes(query) ||
-      report.jenis.toLowerCase().includes(query) ||
-      report.tanggal.includes(query) ||
+  const filteredReports = reports.filter(report => {
+    const query = searchQuery.trim().toLowerCase();
+    // Search by id, jenis, tanggal, itemName, remarks
+    const matchSearch = !query ||
+      (report.id && report.id.toString().includes(query)) ||
+      (report.jenis && report.jenis.toLowerCase().includes(query)) ||
+      (report.tanggal && report.tanggal.toLowerCase().includes(query)) ||
       (report.itemName && report.itemName.toLowerCase().includes(query)) ||
       (report.remarks && report.remarks.toLowerCase().includes(query));
-    
-    // Filter berdasarkan tipe transaksi
+    // Filter by type (jika ada)
+    let matchType = true;
     const typeFilter = activeFilters.find(filter => filter.type === 'type');
-    const matchesType = !typeFilter || report.transactionType === 
-      (typeFilter.value === 'Stock In' ? 'incoming' : 
-       typeFilter.value === 'Stock Out' ? 'outgoing' : 'adjustment');
-    
-    // Filter berdasarkan tanggal mulai
+    if (typeFilter) {
+      if (typeFilter.value === 'Stock In') matchType = report.transactionType === 'incoming';
+      else if (typeFilter.value === 'Stock Out') matchType = report.transactionType === 'outgoing';
+      else if (typeFilter.value === 'Stock Adjustment') matchType = report.transactionType === 'adjustment';
+    }
+    // Filter by startDate (jika ada)
+    let matchStartDate = true;
     const startDateFilter = activeFilters.find(filter => filter.type === 'startDate');
-    const matchesStartDate = !startDateFilter || report.tanggal >= startDateFilter.value;
-    
-    // Filter berdasarkan tanggal akhir
+    if (startDateFilter && report.tanggal) matchStartDate = report.tanggal >= startDateFilter.value;
+    // Filter by endDate (jika ada)
+    let matchEndDate = true;
     const endDateFilter = activeFilters.find(filter => filter.type === 'endDate');
-    const matchesEndDate = !endDateFilter || report.tanggal <= endDateFilter.value;
-    
-    return matchesSearch && matchesType && matchesStartDate && matchesEndDate;
+    if (endDateFilter && report.tanggal) matchEndDate = report.tanggal <= endDateFilter.value;
+    return matchSearch && matchType && matchStartDate && matchEndDate;
   });
+
+  // Jika search/filter menghasilkan kosong, tampilkan semua data (fallback)
+  const finalReports = filteredReports.length === 0 && searchQuery === '' && activeFilters.length === 0 ? reports : filteredReports;
 
   // Filter data stok barang
   const filteredStockItems = stockItems.filter((item) => {
@@ -303,7 +308,7 @@ const Report = ({ user }) => {
     const matchSearch =
       item.id.toString().includes(query) ||
       (item.name && item.name.toLowerCase().includes(query)) ||
-      (item.part_number && item.part_number.toLowerCase().includes(query)) ||
+      (item.part_number && item.part_number.toString().toLowerCase().includes(query)) ||
       (item.category && item.category.toLowerCase().includes(query)) ||
       (item.supplier && item.supplier.toLowerCase().includes(query)) ||
       (item.status && item.status.toLowerCase().includes(query));
@@ -313,7 +318,7 @@ const Report = ({ user }) => {
   });
 
   // Pagination untuk laporan transaksi
-  const paginatedReports = filteredReports.slice(
+  const paginatedReports = finalReports.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
@@ -364,7 +369,7 @@ const Report = ({ user }) => {
     setShowExportOptions(false);
     let dataToExport;
     if (reportTab === 0) {
-      dataToExport = [...filteredReports];
+      dataToExport = [...finalReports];
       if (exportType === 'pdf') {
         exportToPDF(dataToExport);
       } else if (exportType === 'excel') {
@@ -1201,7 +1206,7 @@ const Report = ({ user }) => {
             )}
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
               <Button size="small" onClick={() => { setFilterType(''); setFilterStartDate(''); handleFilterClose(); }}>Reset</Button>
-              <Button size="small" variant="contained" onClick={handleFilterClose}>Terapkan</Button>
+              <Button size="small" variant="contained" onClick={handleApplyFilters}>Terapkan</Button>
             </Box>
           </Menu>
           <Tooltip title="Ekspor Laporan">
@@ -1375,7 +1380,7 @@ const Report = ({ user }) => {
                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 2 }}>
                           <InfoOutlined sx={{ fontSize: 40, color: theme.palette.text.secondary, mb: 1 }} />
                           <Typography variant="body2" color="text.secondary">
-                            {reports.length === 0 ? 'Belum ada data transaksi.' : 'Tidak ada laporan yang sesuai dengan kriteria pencarian.'}
+                            Tidak ada data yang sesuai dengan kriteria pencarian atau filter.
                           </Typography>
                         </Box>
                       </TableCell>
@@ -1494,7 +1499,7 @@ const Report = ({ user }) => {
       >
         <Typography variant="body2" color="text.secondary">
           {reportTab === 0 
-            ? `Menampilkan ${paginatedReports.length} dari ${filteredReports.length} total transaksi`
+            ? `Menampilkan ${paginatedReports.length} dari ${finalReports.length} total transaksi`
             : `Menampilkan ${paginatedStockItems.length} dari ${filteredStockItems.length} total item stok`
           }
           {activeFilters.length > 0 && ' (dengan filter)'}
@@ -1504,7 +1509,7 @@ const Report = ({ user }) => {
           <Typography variant="body2" mr={1}>
             Halaman {page + 1} dari {Math.max(1, Math.ceil(
               reportTab === 0 
-                ? filteredReports.length / rowsPerPage
+                ? finalReports.length / rowsPerPage
                 : filteredStockItems.length / rowsPerPage
             ))}
           </Typography>
@@ -1522,7 +1527,7 @@ const Report = ({ user }) => {
             disabled={
               page >= Math.ceil(
                 reportTab === 0 
-                  ? filteredReports.length / rowsPerPage 
+                  ? finalReports.length / rowsPerPage 
                   : filteredStockItems.length / rowsPerPage
               ) - 1
             }

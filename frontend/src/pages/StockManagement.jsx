@@ -116,6 +116,27 @@ const StockManagement = ({ user }) => {
   // Tambahkan state untuk snackbar error di StockManagement
   const [openErrorSnackbar, setOpenErrorSnackbar] = useState(false);
 
+  // Tambahkan state untuk pagination
+  const [page, setPage] = useState(0);
+  const rowsPerPage = 5;
+
+  // Tambahkan efek reset page ke 0 saat search/filter berubah
+  useEffect(() => { setPage(0); }, [searchQuery, filterCategory, filterSupplier]);
+
+  // Data yang ditampilkan setelah filter dan search
+  const filteredItems = items.filter(item => {
+    const query = searchQuery.trim().toLowerCase();
+    return (
+      !query ||
+      item.id.toString().includes(query) ||
+      (item.name && item.name.toLowerCase().includes(query)) ||
+      (item.part_number && item.part_number.toLowerCase().includes(query)) ||
+      (item.category && item.category.toLowerCase().includes(query)) ||
+      (item.supplier && item.supplier.toLowerCase().includes(query))
+    );
+  });
+  const paginatedItems = filteredItems.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
   // Handler untuk perubahan tab
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -634,7 +655,7 @@ const StockManagement = ({ user }) => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    items.map((item) => {
+                    paginatedItems.map((item) => {
                       const totalValue = (item.price && item.stock) ? item.price * item.stock : 0;
                       return (
                         <TableRow
@@ -781,6 +802,22 @@ const StockManagement = ({ user }) => {
               </Alert>
             </Snackbar>
           )}
+
+          {/* Tambahkan komponen pagination di bawah tabel: */}
+          <Stack direction="row" justifyContent="space-between" alignItems="center" mt={2}>
+            <Typography variant="body2" color="text.secondary">
+              Menampilkan {paginatedItems.length} dari {filteredItems.length} item
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <IconButton size="small" onClick={() => setPage(page - 1)} disabled={page === 0}>
+                {'<'}
+              </IconButton>
+              <Typography variant="body2">{page + 1}</Typography>
+              <IconButton size="small" onClick={() => setPage(page + 1)} disabled={page >= Math.ceil(filteredItems.length / rowsPerPage) - 1}>
+                {'>'}
+              </IconButton>
+            </Box>
+          </Stack>
         </Box>
       ) : null}
     </Box>

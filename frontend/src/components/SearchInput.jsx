@@ -2,7 +2,7 @@
 import React from 'react';
 import { InputBase } from '@mui/material';
 
-const SearchInput = ({ searchQuery, onSearchChange, placeholder = "Search..." }) => {
+const SearchInput = ({ searchQuery, onSearchChange, placeholder = "Search...", sx = {}, ...props }) => {
   const searchStyles = {
     bgcolor: 'white',
     px: 2,
@@ -11,6 +11,7 @@ const SearchInput = ({ searchQuery, onSearchChange, placeholder = "Search..." })
     borderColor: 'grey.400',
     borderRadius: 2,
     minWidth: { xs: '100%', sm: 250 },
+    ...sx,
   };
 
   return (
@@ -20,6 +21,7 @@ const SearchInput = ({ searchQuery, onSearchChange, placeholder = "Search..." })
       onChange={onSearchChange}
       size="small"
       sx={searchStyles}
+      {...props}
     />
   );
 };
