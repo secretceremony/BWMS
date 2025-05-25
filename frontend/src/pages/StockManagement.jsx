@@ -123,6 +123,9 @@ const StockManagement = ({ user }) => {
   // Tambahkan efek reset page ke 0 saat search/filter berubah
   useEffect(() => { setPage(0); }, [searchQuery, filterCategory, filterSupplier]);
 
+  // Tambahkan state baru: sortAbjad (default 'az').
+  const [sortAbjad, setSortAbjad] = useState('az');
+
   // Data yang ditampilkan setelah filter dan search
   const filteredItems = items.filter(item => {
     const query = searchQuery.trim().toLowerCase();
@@ -130,12 +133,21 @@ const StockManagement = ({ user }) => {
       !query ||
       item.id.toString().includes(query) ||
       (item.name && item.name.toLowerCase().includes(query)) ||
-      (item.part_number && item.part_number.toLowerCase().includes(query)) ||
+      (item.part_number && item.part_number.toString().toLowerCase().includes(query)) ||
       (item.category && item.category.toLowerCase().includes(query)) ||
       (item.supplier && item.supplier.toLowerCase().includes(query))
     );
   });
-  const paginatedItems = filteredItems.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  // Tambahkan logic untuk sorting berdasarkan sortAbjad
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    if (!a.name) return 1;
+    if (!b.name) return -1;
+    if (sortAbjad === 'az') return a.name.localeCompare(b.name);
+    return b.name.localeCompare(a.name);
+  });
+
+  const paginatedItems = sortedItems.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   // Handler untuk perubahan tab
   const handleTabChange = (event, newValue) => {
@@ -263,6 +275,10 @@ const StockManagement = ({ user }) => {
                   setDeleteError("Authentication error: Please login again.");
                   localStorage.removeItem('token');
                   navigate('/login');
+              } else if (
+                errorBody.error && errorBody.error.includes('associated history records')
+              ) {
+                setDeleteError('Item tidak dapat dihapus karena sudah pernah digunakan dalam transaksi. Silakan nonaktifkan item jika tidak ingin digunakan lagi.');
               } else {
                   setDeleteError(`Failed to delete item: ${errorBody.error || errorBody.message || response.statusText}`);
               }
@@ -505,12 +521,7 @@ const StockManagement = ({ user }) => {
         Stock Management
       </Typography>
 
-      {/* Tab Navigation */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={activeTab} onChange={handleTabChange} aria-label="stock management tabs">
-          <Tab label="Inventory" />
-        </Tabs>
-      </Box>
+      {/* Tab Navigation dihapus sesuai permintaan */}
 
       {/* Tab Content */}
       {activeTab === 0 ? (
@@ -604,6 +615,17 @@ const StockManagement = ({ user }) => {
                   <Button size="small" variant="contained" onClick={handleFilterClose}>Terapkan</Button>
                 </Box>
               </Menu>
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <InputLabel>Urutkan</InputLabel>
+                <Select
+                  value={sortAbjad}
+                  label="Urutkan"
+                  onChange={e => setSortAbjad(e.target.value)}
+                >
+                  <MenuItem value="az">A-Z</MenuItem>
+                  <MenuItem value="za">Z-A</MenuItem>
+                </Select>
+              </FormControl>
             </Box>
             <Box sx={{ minWidth: 200 }}>
               <SearchInput value={searchQuery} onChange={handleSearchChange} placeholder="Cari item..." fullWidth />
@@ -719,7 +741,7 @@ const StockManagement = ({ user }) => {
                           </TableCell>
                           <TableCell>
                             {user && user.role === 'admin' && (
-                              <>
+                              <Stack direction="row" spacing={1} justifyContent="center">
                                 <IconButton
                                   size="small"
                                   color="primary"
@@ -734,7 +756,7 @@ const StockManagement = ({ user }) => {
                                 >
                                   <DeleteIcon fontSize="small" />
                                 </IconButton>
-                              </>
+                              </Stack>
                             )}
                           </TableCell>
                         </TableRow>
@@ -747,16 +769,6 @@ const StockManagement = ({ user }) => {
           </Card>
 
           {/* Modals */}
-          <DeleteConfirmationDialog
-            open={openConfirm}
-            onClose={handleCancelDelete}
-            onConfirm={handleConfirmDelete}
-            title="Delete Item"
-            content="Are you sure you want to delete this item? This action cannot be undone."
-            loading={deleteLoading}
-            error={deleteError}
-          />
-
           {user && user.role === 'admin' && (
             <StockForm
               open={openForm}
@@ -787,6 +799,17 @@ const StockManagement = ({ user }) => {
               items={items}
               loading={transactionLoading}
               error={transactionError}
+            />
+          )}
+
+          {user && user.role === 'admin' && (
+            <DeleteConfirmationDialog
+              open={openConfirm}
+              onClose={handleCancelDelete}
+              onConfirm={handleConfirmDelete}
+              itemId={selectedItemId}
+              loading={deleteLoading}
+              error={deleteError}
             />
           )}
 
