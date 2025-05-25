@@ -1,141 +1,116 @@
-# 📦 Proyek Sistem Manajemen Inventory – PT Biruni Altha Ethan
+# 📦 Biruni Warehouse Management System (BWMS) – PT Biruni Altha Ethan
 
 ## 1. 🎯 Latar Belakang
-**PT Biruni Altha Ethan** adalah perusahaan penyedia komponen/sparepart alat berat dalam kondisi baru maupun rekondisi. Dengan harga yang kompetitif, perusahaan ini membutuhkan **pengelolaan barang yang baik dan terstruktur**.
+**PT Biruni Altha Ethan** adalah perusahaan penyedia komponen/sparepart alat berat dalam kondisi baru maupun rekondisi. Untuk menjaga daya saing harga, perusahaan ini membutuhkan **pengelolaan barang yang efisien dan terstruktur**.
 
 Manajemen barang yang rapi akan:
-- Menjadikan pekerjaan lebih terorganisir
-- Meningkatkan keakuratan data
-- Mendukung peningkatan penjualan secara signifikan
+* Membuat pekerjaan lebih terorganisir
+* Meningkatkan akurasi data inventaris
+* Mendukung pertumbuhan penjualan secara signifikan
 
 ---
 
 ## 2. 🎯 Tujuan
-Membangun **aplikasi web** untuk:
-- Membantu pengelolaan inventory
-- Mencatat transaksi secara efisien
-- Menyediakan laporan yang mendukung pengambilan keputusan bisnis
+Membangun **aplikasi web** yang bertujuan untuk:
+* Mempermudah pengelolaan inventaris secara menyeluruh
+* Mencatat transaksi barang masuk dan keluar secara efisien
+* Menyediakan laporan yang akurat untuk mendukung pengambilan keputusan bisnis
 
 ---
 
-## 3. 🚀 Fitur MVP (Minimum Viable Product)
+## 3. 🚀 Fitur Utama
 
-- **🔐 Autentikasi**
-  - Login untuk admin dan manager
+Berikut adalah fitur-fitur yang tersedia dalam sistem ini:
 
-- **📦 Manajemen Produk**
-  - CRUD produk (nama, deskripsi, harga, stok)
-
-- **📈 Manajemen Stok**
-  - Stok otomatis terupdate saat terjadi transaksi
-
-- **📊 Dashboard**
-  - Ringkasan penjualan dan status stok terkini
-
-- **📝 Laporan**
-  - Laporan penjualan harian & bulanan
-  - Laporan ketersediaan stok
-
----
-
-## 4. 👥 User Roles
-
-| Role    | Akses                                                                 |
-|---------|-----------------------------------------------------------------------|
-| **Admin**   | Akses penuh ke semua fitur: produk, transaksi, stok, dan semua laporan |
-| **Manager** | Hanya dapat melihat laporan transaksi, laporan stok, dan produk      |
+* **🔐 Autentikasi**:
+    * Login untuk peran Admin dan Manajer.
+* **📊 Dashboard**:
+    * Memberikan ringkasan visual mengenai status stok terkini, ringkasan transaksi (barang masuk dan keluar), dan ikhtisar performa bisnis.
+* **📦 Manajemen Stok**:
+    * **CRUD Produk**: Mengelola data produk (nama, deskripsi, harga, stok).
+    * **Barang Masuk**: Mencatat setiap item yang masuk ke gudang.
+    * **Barang Keluar**: Mencatat setiap item yang keluar dari gudang.
+    * Stok otomatis terupdate setiap kali ada transaksi barang masuk atau keluar.
+* **📝 Laporan**:
+    * Menghasilkan laporan, termasuk laporan transaksi dan laporan stok barang.
+* **👤 Manajemen Supplier**:
+    * Melakukan operasi CRUD (Create, Read, Update, Delete) data supplier.
+* **⏳ Riwayat Transaksi**:
+    * Melihat riwayat lengkap transaksi barang masuk dan keluar untuk pelacakan yang mudah.
 
 ---
 
-## 5. 🛠 Tech Stack
+## 4. 👥 Peran Pengguna (User Roles)
 
-| Layer       | Teknologi                        |
+| Peran       | Akses                                                                 |
+|-------------|-----------------------------------------------------------------------|
+| **Admin**   | Akses penuh ke semua fitur: pengelolaan produk, transaksi, stok, laporan, manajemen pemasok, dan riwayat. |
+| **Manajer** | Hanya dapat melihat laporan transaksi, laporan stok, produk, dan riwayat.      |
+
+---
+
+## 5. 🛠 Teknologi yang Digunakan (Tech Stack)
+
+Project ini dibangun sebagai aplikasi *fullstack* dengan menggunakan stack teknologi berikut:
+
+| Layer       | Teknologi                        |
 |-------------|----------------------------------|
-| **Frontend**  | React (Vite), Material-UI         |
-| **Backend**   | Express.js, Node.js               |
-| **Database**  | PostgreSQL                        |
-| **Auth**      | JWT                               |
-| **Deployment**| Vercel (frontend), Railway (backend) |
+| **Frontend**  | React (dengan Vite), Material-UI |
+| **Backend**   | Express.js, Node.js               |
+| **Database**  | PostgreSQL                        |
+| **Autentikasi**| JWT (JSON Web Tokens)           |
+| **Deployment**| Vercel (untuk *frontend*), Railway (untuk *backend*) |
 
 ---
 
+## 6. 🚀 Memulai (Getting Started)
 
-# 🛠 Fullstack App - Vite + Express + PostgreSQL + JWT
-
-Project ini merupakan aplikasi fullstack dengan stack sebagai berikut:
-
-- *Frontend*: React (Vite) + Material UI
-- *Backend*: Express.js + Node.js
-- *Database*: PostgreSQL
-- *Authentication*: JWT
-- *Deployment*: Vercel (frontend), Railway (backend)
-
----
-
-## 🚀 Getting Started - Jalankan Secara Lokal
+Ikuti langkah-langkah di bawah ini untuk menjalankan aplikasi secara lokal.
 
 ### 🔧 Prasyarat
 
-- Node.js & npm
-- PostgreSQL
-- Git
+Pastikan Anda memiliki hal-hal berikut terinstal di sistem Anda:
 
----
+* Node.js & npm
+* PostgreSQL
+* Git
 
-## 📁 Struktur Project
+### 📁 Struktur Proyek
 
-
+```
 project-root/
-├── backend/      ← Express.js API
-└── frontend/     ← Vite + React App
+├── backend/    ← Direktori API Express.js
+└── frontend/   ← Direktori Aplikasi React (Vite)
+```
 
+### 🖥 Menjalankan Backend (Express.js)
 
----
+1.  Masuk ke direktori `backend`:
+    ```bash
+    cd backend
+    ```
+2.  Instal dependensi:
+    ```bash
+    npm install
+    ```
+3.  Jalankan server pengembangan:
+    ```bash
+    npm run dev
+    ```
+    Server akan berjalan di `http://localhost:5000`.
 
-## 🖥 Menjalankan Backend (Express.js)
+### 🌐 Menjalankan Frontend (Vite + React)
 
-### 1. Masuk ke folder backend
-bash
-cd backend
-
-
-### 2. Install dependencies
-bash
-npm install
-
-
-### 3. Jalankan server
-bash
-npm run dev
-
-
-Server akan berjalan di http://localhost:5000
-
----
-
-## 🌐 Menjalankan Frontend (Vite + React)
-
-### 1. Masuk ke folder frontend
-bash
-cd frontend
-
-
-### 2. Install dependencies
-bash
-npm install
-
-
-### 4. Jalankan development server
-bash
-npm run dev
-
-
-Aplikasi akan muncul di http://localhost:5173
-
----
-
-## 🔐 Fitur Autentikasi (JWT)
-
-- Register/Login akan menghasilkan JWT token
-- Token dikirim melalui Authorization header
-- Middleware auth.js memverifikasi token untuk endpoint yang dilindungi
+1.  Masuk ke direktori `frontend`:
+    ```bash
+    cd frontend
+    ```
+2.  Instal dependensi:
+    ```bash
+    npm install
+    ```
+3.  Jalankan server pengembangan:
+    ```bash
+    npm run dev
+    ```
+    Aplikasi akan tersedia di `http://localhost:5173`.
