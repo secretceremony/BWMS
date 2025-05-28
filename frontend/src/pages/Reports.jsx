@@ -1130,17 +1130,6 @@ const Report = ({ user }) => {
         mb={3}
       >
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-          {user && user.role === 'admin' && reportTab === 0 && (
-            <Button 
-              variant="contained" 
-              size="small" 
-              onClick={handleOpenAddForm}
-              startIcon={<AddIcon />}
-              sx={{ minWidth: 100, height: 36 }}
-            >
-              Tambah Laporan
-            </Button>
-          )}
           <Tooltip title="Filter Laporan">
             <Button
               variant="outlined"
